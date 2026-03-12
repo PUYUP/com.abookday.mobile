@@ -1,9 +1,11 @@
+import { MoodOption, SessionData } from "@/state/reading/reading-slice";
 import { useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Alert, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useDispatch, useSelector } from "react-redux";
 
 const MOOD_OPTIONS = [
   { id: 'happy', label: 'Happy', emoji: '😊', color: '#C9A84C' },
@@ -14,34 +16,23 @@ const MOOD_OPTIONS = [
   { id: 'sleepy', label: 'Sleepy', emoji: '😴', color: '#7A8C9E' },
 ];
 
-type MoodOption = typeof MOOD_OPTIONS[number];
-
-export interface SessionData {
-    mood: MoodOption['id'];
-    lastPage: string;
-    timer: TimerData[];
-    note?: string;
-}
-
-export interface TimerData {
-    action: 'start' | 'pause' | 'resume' | 'finish';
-    time: Date;
-    timerAtPause?: Date;
-    timerAtResume?: Date;
-}
-
 export default function SessionEndedScreen() {
+    const dispatch = useDispatch();
+    const insets = useSafeAreaInsets();
     const router = useRouter();
-    const [selectedMood, setSelectedMood] = useState<MoodOption['id'] | null>(null);
+    const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
     const [submitted, setSubmitted] = useState(false);
 
     const navigation = useNavigation();
     const hasUnsavedChanges = true; // Replace with your actual logic
 
+    // ----- Redux state and dispatch -----
+    const readingSession = useSelector((state: any) => state.reading.sessionData) as SessionData | null;
+
     // ----- Form submission and unsaved changes handling -----
     const { control, handleSubmit, setValue, formState } = useForm<SessionData>({
         defaultValues: {
-            mood: '',
+            mood: undefined,
             lastPage: '',
             note: '',
             timer: [], // You can populate this with actual timer data if needed
@@ -49,7 +40,9 @@ export default function SessionEndedScreen() {
     });
 
     useEffect(() => {
-        setValue('mood', selectedMood || '');
+        if (selectedMood) {
+            setValue('mood', selectedMood);
+        }
     }, [selectedMood, setValue]);
 
     useEffect(() => {
@@ -83,6 +76,10 @@ export default function SessionEndedScreen() {
         return unsubscribe; // Clean up the listener
     }, [navigation, hasUnsavedChanges, submitted]);
 
+    useEffect(() => {
+        console.log('Current reading session from Redux:', readingSession);
+    }, [readingSession]);
+
     const saveHandler = handleSubmit((data) => {
         // check mood, lastPage
         if (!data.mood) {
@@ -90,19 +87,35 @@ export default function SessionEndedScreen() {
             return;
         }
 
-        if (!data.lastPage.trim()) {
+        if (!data?.lastPage?.trim()) {
             Alert.alert('Validation Error', 'Please enter the last page you read.');
             return;
         }
 
+        dispatch({ type: 'reading/stopReading' });
+
         // Save the session data (e.g., send to backend or store locally)
-        console.log('Session Data:', data);
+        if (readingSession) {
+            const payload: SessionData = {
+                ...readingSession,
+                mood: data.mood,
+                lastPage: data.lastPage,
+                note: data.note,
+                timer: [
+                    ...readingSession.timer,
+                    { action: 'finish', time: new Date().toISOString() },
+                ],
+            }
+
+            console.log('Final session data to save:', payload);
+        };
+
         setSubmitted(true);
         router.back(); // Go back to the previous screen after saving
     });
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={[styles.container, { paddingTop: insets.top }]} edges={['top']}>
             <KeyboardAwareScrollView 
                 bottomOffset={80} 
                 scrollToOverflowEnabled={false} 
@@ -149,7 +162,7 @@ export default function SessionEndedScreen() {
                                                 styles.moodCard,
                                                 isSelected && { borderColor: mood.color, backgroundColor: `${mood.color}18` },
                                             ]}
-                                            onPress={() => setSelectedMood(mood.id)}
+                                            onPress={() => setSelectedMood(mood.id as MoodOption)}
                                             activeOpacity={0.75}
                                         >
                                             <Text style={styles.moodEmoji}>{mood.emoji}</Text>
@@ -173,7 +186,7 @@ export default function SessionEndedScreen() {
                                         <TextInput
                                             style={[
                                                 styles.pageInput,
-                                                value.trim() === '' && submitted ? styles.inputError : null,
+                                                value?.trim() === '' && submitted ? styles.inputError : null,
                                             ]}
                                             placeholder="e.g. 142"
                                             placeholderTextColor="#B0B8C1"
@@ -183,7 +196,7 @@ export default function SessionEndedScreen() {
                                             maxLength={5}
                                         />
 
-                                        {value.trim() === '' && submitted && (
+                                        {value?.trim() === '' && submitted && (
                                             <Text style={styles.errorText}>Please enter the last page you read</Text>
                                         )}
                                     </React.Fragment>

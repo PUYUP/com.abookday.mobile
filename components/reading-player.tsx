@@ -1,3 +1,4 @@
+import { BookData, StartSessionPayload, TimerLog } from '@/state/reading/reading-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -9,29 +10,31 @@ import {
   View
 } from 'react-native';
 import { Button, useTheme } from 'react-native-paper';
+import { useDispatch, useSelector } from 'react-redux';
 
-const SONG = {
+const BOOK_DATA: BookData = {
+  id: '1',
   title: 'Dari Logika Mistika, Lewat Filsafat, Menuju Ilmu Pengetahuan',
-  artist: 'Cania Citta',
-  album: "Novel",
+  author: 'Cania Citta',
+  genre: "Novel",
 };
-
-type ActionLog =
-  | { action: 'start' | 'resume' | 'finish'; time: Date }
-  | { action: 'pause'; time: Date; timerAtPause: Date; timerAtResume: Date | null };
 
 export default function ReadingPlayer() {
   const router = useRouter();
-  const [status, setStatus] = useState('stopped'); // 'playing' | 'paused' | 'stopped'
+  const [status, setStatus] = useState('stopped'); // 'reading' | 'paused' | 'stopped'
   const [seconds, setSeconds] = useState(0);
-  const [actionLog, setActionLog] = useState<ActionLog[]>([]);
+  const [actionLog, setActionLog] = useState<TimerLog[]>([]);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const spinAnim = useRef(new Animated.Value(0)).current;
   const spinAnimRef = useRef<Animated.CompositeAnimation | null>(null);
   const theme = useTheme();
 
-  const logAction = (action: ActionLog) => {
+  // Redux
+  const dispatch = useDispatch();
+  const readingState = useSelector((state: any) => state.reading);
+
+  const logAction = (action: TimerLog) => {
     setActionLog((prev) => [...prev, action]);
   };
 
@@ -40,7 +43,7 @@ export default function ReadingPlayer() {
       const next = [...prev];
       for (let i = next.length - 1; i >= 0; i--) {
         if (next[i].action === 'pause') {
-          next[i] = { ...next[i], timerAtResume } as ActionLog;
+          next[i] = { ...next[i], timerAtResume: timerAtResume.toISOString() } as TimerLog;
           break;
         }
       }
@@ -50,7 +53,7 @@ export default function ReadingPlayer() {
 
   // Timer
   useEffect(() => {
-    if (status === 'playing') {
+    if (status === 'reading') {
       intervalRef.current = setInterval(() => {
         setSeconds((s) => s + 1);
       }, 1000);
@@ -70,7 +73,7 @@ export default function ReadingPlayer() {
 
   // Vinyl spin animation
   useEffect(() => {
-    if (status === 'playing') {
+    if (status === 'reading') {
       spinAnimRef.current = Animated.loop(
         Animated.timing(spinAnim, {
           toValue: 1,
@@ -86,33 +89,56 @@ export default function ReadingPlayer() {
     }
   }, [status]);
 
-  const handlePlay = () => {
-    if (status !== 'playing') {
+  // Reading state changed in store
+  useEffect(() => {
+    if (readingState.status === 'stopped') {
+      handleStop();
+    }
+  }, [readingState.status]);
+
+  // Start reading session
+  const handleRead = () => {
+    if (status !== 'reading') {
       if (status === 'paused') {
         patchLastPauseWithResume(new Date());
-        logAction({ action: 'resume', time: new Date() });
+        logAction({ action: 'resume', time: new Date().toISOString() });
       } else {
-        logAction({ action: 'start', time: new Date() });
+        logAction({ action: 'start', time: new Date().toISOString() });
       }
-      setStatus('playing');
+      setStatus('reading');
+
+      // insert into store here
+      const lastAction = actionLog[actionLog.length - 1];
+      const payload: StartSessionPayload = {
+        bookId: BOOK_DATA.id,
+        bookTitle: BOOK_DATA.title,
+        startPage: '1',
+        timer: [...actionLog, lastAction ? { ...lastAction, time: lastAction.time } : { action: 'start', time: new Date().toISOString() }],
+      };
+
+      dispatch({ type: 'reading/startReading', payload });
     }
   };
 
   const handlePause = (action: string = '') => {
-    if (status === 'playing') {
-      logAction({ action: 'pause', time: new Date(), timerAtPause: new Date(), timerAtResume: null });
+    if (status === 'reading') {
+      logAction({ action: 'pause', time: new Date().toISOString(), timerAtPause: new Date().toISOString(), timerAtResume: undefined });
       setStatus('paused');
 
-      // open confirmation dialog if action is 'stopped'
-      if (action === 'stopped') {
-        router.push('/session-ended');
-      }
+      dispatch({ type: 'reading/pauseReading', payload: { timer: actionLog } });
+    }
+
+    // open confirmation dialog if action is 'stopped'
+    if (action === 'stopped') {
+      router.push('/session-ended');
     }
   };
 
   const handleStop = () => {
-    const finishEntry: ActionLog = { action: 'finish', time: new Date() };
+    const finishEntry: TimerLog = { action: 'finish', time: new Date().toISOString() };
     const finalLog = [...actionLog, finishEntry];
+
+    dispatch({ type: 'reading/finishReading', payload: { timer: finalLog } });
 
     setStatus('stopped');
     setSeconds(0);
@@ -149,9 +175,9 @@ export default function ReadingPlayer() {
           {/* Song Info */}
           <View style={styles.songInfo}>
             <View style={styles.songMeta}>
-              <Text style={styles.songTitle} numberOfLines={2}>{SONG.title}</Text>
-              <Text style={styles.songArtist}>{SONG.artist}</Text>
-              <Text style={styles.songAlbum}>{SONG.album.toUpperCase()}</Text>
+              <Text style={styles.songTitle} numberOfLines={2}>{BOOK_DATA.title}</Text>
+              {BOOK_DATA.author && <Text style={styles.songArtist}>{BOOK_DATA.author}</Text>}
+              <Text style={styles.songAlbum}>{BOOK_DATA.genre.toUpperCase()}</Text>
             </View>
           </View>
         </View>
@@ -176,15 +202,15 @@ export default function ReadingPlayer() {
               </View>
             </>}
 
-            {(status === 'playing' || status === 'paused') && (
+            {(status === 'reading' || status === 'paused') && (
               <Text style={styles.timer}>{formatTime(seconds)}</Text>
             )}
           </View>
 
           <View style={styles.controls}>
             <Button
-              icon={() => <MaterialIcons name={status === 'playing' ? 'pause' : (status === 'paused' ? 'play-arrow' : 'play-lesson')} color={theme.colors.primary} size={status === 'stopped' ? 22 : 26} />}
-              onPress={status === 'playing' ? () => handlePause() : handlePlay}
+              icon={() => <MaterialIcons name={status === 'reading' ? 'pause' : (status === 'paused' ? 'play-arrow' : 'play-lesson')} color={theme.colors.primary} size={status === 'stopped' ? 22 : 26} />}
+              onPress={status === 'reading' ? () => handlePause() : handleRead}
               style={[
                 styles.controlButton, 
                 { backgroundColor: 'rgba(30,144,255,0.05)' }, 
@@ -192,10 +218,10 @@ export default function ReadingPlayer() {
               ]}
               labelStyle={{ marginLeft: status === 'stopped' ? 14 : 10 }}
             >
-              {status === 'playing' ? 'Pause' : (status === 'paused' ? 'Resume' : 'Read')}
+              {status === 'reading' ? 'Pause' : (status === 'paused' ? 'Resume' : 'Read')}
             </Button>
 
-            {(status === 'playing' || status === 'paused') && (
+            {(status === 'reading' || status === 'paused') && (
               <Button
                 icon={() => <MaterialIcons name="check" color={'#2e8b57'} size={26} />}
                 onPress={() => handlePause('stopped')}

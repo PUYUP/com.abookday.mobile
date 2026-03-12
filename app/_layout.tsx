@@ -6,9 +6,11 @@ import { MD3LightTheme, PaperProvider } from 'react-native-paper';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import store from '@/state/store';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { Provider } from 'react-redux';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -39,18 +41,20 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <PaperProvider theme={theme}>
-        <KeyboardProvider>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            <Stack.Screen name="session-ended" options={{ presentation: 'fullScreenModal', headerShown: false }} />
-            <Stack.Screen name="adjust-goal" options={{ title: 'Adjust Goal', headerBackButtonDisplayMode: 'minimal' }} />
-          </Stack>
-        </KeyboardProvider>
-        <StatusBar style="auto" />
-      </PaperProvider>
-    </ThemeProvider>
+    <Provider store={store}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <PaperProvider theme={theme}>
+          <KeyboardProvider>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+              <Stack.Screen name="session-ended" options={{ presentation: 'fullScreenModal', headerShown: false }} />
+              <Stack.Screen name="adjust-goal" options={{ title: 'Adjust Goal', headerBackButtonDisplayMode: 'minimal' }} />
+            </Stack>
+          </KeyboardProvider>
+          <StatusBar style="auto" />
+        </PaperProvider>
+      </ThemeProvider>
+    </Provider>
   );
 }
