@@ -97,20 +97,26 @@ export default function ReadingPlayer() {
       setStatus('playing');
     }
   };
-  const handlePause = () => {
+
+  const handlePause = (action: string = '') => {
     if (status === 'playing') {
       logAction({ action: 'pause', time: new Date(), timerAtPause: new Date(), timerAtResume: null });
       setStatus('paused');
+
+      // open confirmation dialog if action is 'stopped'
+      if (action === 'stopped') {
+        router.push('/session-ended');
+      }
     }
   };
+
   const handleStop = () => {
-    logAction({ action: 'finish', time: new Date() });
+    const finishEntry: ActionLog = { action: 'finish', time: new Date() };
+    const finalLog = [...actionLog, finishEntry];
+
     setStatus('stopped');
     setSeconds(0);
-
-    console.log('Action Log:', actionLog);
     setActionLog([]);
-    router.push('/session-ended');
   };
 
   const formatTime = (s: number) => {
@@ -178,7 +184,7 @@ export default function ReadingPlayer() {
           <View style={styles.controls}>
             <Button
               icon={() => <MaterialIcons name={status === 'playing' ? 'pause' : (status === 'paused' ? 'play-arrow' : 'play-lesson')} color={theme.colors.primary} size={status === 'stopped' ? 22 : 26} />}
-              onPress={status === 'playing' ? handlePause : handlePlay}
+              onPress={status === 'playing' ? () => handlePause() : handlePlay}
               style={[
                 styles.controlButton, 
                 { backgroundColor: 'rgba(30,144,255,0.05)' }, 
@@ -192,7 +198,7 @@ export default function ReadingPlayer() {
             {(status === 'playing' || status === 'paused') && (
               <Button
                 icon={() => <MaterialIcons name="check" color={'#2e8b57'} size={26} />}
-                onPress={handleStop}
+                onPress={() => handlePause('stopped')}
                 textColor={'#2e8b57'}
                 style={[styles.controlButton, { backgroundColor: 'rgba(46,139,87,0.1)' }]}
                 labelStyle={{ marginLeft: 10 }}

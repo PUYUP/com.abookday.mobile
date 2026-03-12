@@ -1,8 +1,9 @@
-import { useNavigation } from "expo-router";
-import { useEffect, useState } from "react";
+import { useNavigation, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { Alert, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const MOOD_OPTIONS = [
   { id: 'happy', label: 'Happy', emoji: '😊', color: '#C9A84C' },
@@ -13,19 +14,47 @@ const MOOD_OPTIONS = [
   { id: 'sleepy', label: 'Sleepy', emoji: '😴', color: '#7A8C9E' },
 ];
 
-export default function SessionEndedScreen() {
-    const insets = useSafeAreaInsets();
-    const [selectedMood, setSelectedMood] = useState<string | null>(null);
-    const [lastPage, setLastPage] = useState('');
-    const [note, setNote] = useState('');
-    const [submitted, setSubmitted] = useState(false);
+type MoodOption = typeof MOOD_OPTIONS[number];
 
-    const isValid = selectedMood !== null && lastPage.trim() !== '';
+export interface SessionData {
+    mood: MoodOption['id'];
+    lastPage: string;
+    timer: TimerData[];
+    note?: string;
+}
+
+export interface TimerData {
+    action: 'start' | 'pause' | 'resume' | 'finish';
+    time: Date;
+    timerAtPause?: Date;
+    timerAtResume?: Date;
+}
+
+export default function SessionEndedScreen() {
+    const router = useRouter();
+    const [selectedMood, setSelectedMood] = useState<MoodOption['id'] | null>(null);
+    const [submitted, setSubmitted] = useState(false);
 
     const navigation = useNavigation();
     const hasUnsavedChanges = true; // Replace with your actual logic
 
+    // ----- Form submission and unsaved changes handling -----
+    const { control, handleSubmit, setValue, formState } = useForm<SessionData>({
+        defaultValues: {
+            mood: '',
+            lastPage: '',
+            note: '',
+            timer: [], // You can populate this with actual timer data if needed
+        }
+    });
+
     useEffect(() => {
+        setValue('mood', selectedMood || '');
+    }, [selectedMood, setValue]);
+
+    useEffect(() => {
+        if (submitted) return; // Don't prompt if the form has already been submitted
+
         const unsubscribe = navigation.addListener('beforeRemove', (e) => {
             // Prevent default behavior of leaving the screen
             if (!hasUnsavedChanges) {
@@ -52,11 +81,34 @@ export default function SessionEndedScreen() {
         });
 
         return unsubscribe; // Clean up the listener
-    }, [navigation, hasUnsavedChanges]);
+    }, [navigation, hasUnsavedChanges, submitted]);
+
+    const saveHandler = handleSubmit((data) => {
+        // check mood, lastPage
+        if (!data.mood) {
+            Alert.alert('Validation Error', 'Please select how you felt during the session.');
+            return;
+        }
+
+        if (!data.lastPage.trim()) {
+            Alert.alert('Validation Error', 'Please enter the last page you read.');
+            return;
+        }
+
+        // Save the session data (e.g., send to backend or store locally)
+        console.log('Session Data:', data);
+        setSubmitted(true);
+        router.back(); // Go back to the previous screen after saving
+    });
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <KeyboardAwareScrollView bottomOffset={80} scrollToOverflowEnabled={false} ScrollViewComponent={ScrollView}>
+            <KeyboardAwareScrollView 
+                bottomOffset={80} 
+                scrollToOverflowEnabled={false} 
+                ScrollViewComponent={ScrollView}
+                keyboardShouldPersistTaps="handled"
+            >
                 <View style={styles.inner}>
                     {/* Header */}
                     <View style={styles.header}>
@@ -82,6 +134,7 @@ export default function SessionEndedScreen() {
                         
                             <FlatList 
                                 scrollEnabled={false}
+                                keyboardShouldPersistTaps="handled"
                                 numColumns={3}
                                 data={MOOD_OPTIONS}
                                 keyExtractor={(item) => item.id}
@@ -111,41 +164,64 @@ export default function SessionEndedScreen() {
                             <View style={styles.labelRow}>
                                 <Text style={styles.label}>Last read page*</Text>
                             </View>
-                            <TextInput
-                                style={[
-                                    styles.pageInput,
-                                    lastPage.trim() === '' && submitted ? styles.inputError : null,
-                                ]}
-                                placeholder="e.g. 142"
-                                placeholderTextColor="#B0B8C1"
-                                keyboardType="number-pad"
-                                value={lastPage}
-                                onChangeText={setLastPage}
-                                maxLength={5}
+                            <Controller
+                                control={control}
+                                name='lastPage'
+                                rules={{ required: true }}
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <React.Fragment>
+                                        <TextInput
+                                            style={[
+                                                styles.pageInput,
+                                                value.trim() === '' && submitted ? styles.inputError : null,
+                                            ]}
+                                            placeholder="e.g. 142"
+                                            placeholderTextColor="#B0B8C1"
+                                            keyboardType="number-pad"
+                                            value={value}
+                                            onChangeText={onChange}
+                                            maxLength={5}
+                                        />
+
+                                        {value.trim() === '' && submitted && (
+                                            <Text style={styles.errorText}>Please enter the last page you read</Text>
+                                        )}
+                                    </React.Fragment>
+                                )}
                             />
-                            {lastPage.trim() === '' && submitted && (
-                                <Text style={styles.errorText}>Please enter the last page you read</Text>
-                            )}
                         </View>
                     </View>
 
                     {/* Note */}
                     <View style={[styles.section, { marginBottom: 0 }]}>
-                        <TextInput
-                            style={styles.noteInput}
-                            placeholder="Thoughts, quotes, reflections… (optional)"
-                            placeholderTextColor="#B0B8C1"
-                            multiline
-                            value={note}
-                            onChangeText={setNote}
-                            textAlignVertical="top"
-                        />
-                        <Text style={styles.charCount}>{note.length} / 300</Text>
+                        <Controller
+                                control={control}
+                                name='note'
+                                rules={{ required: false }}
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <React.Fragment>
+                                        <TextInput
+                                            style={styles.noteInput}
+                                            placeholder="Thoughts, quotes, reflections… (optional)"
+                                            placeholderTextColor="#B0B8C1"
+                                            multiline
+                                            value={value}
+                                            onChangeText={onChange}
+                                            textAlignVertical="top"
+                                        />
+                                        {value && <Text style={styles.charCount}>{value.length} / 300</Text>}
+                                    </React.Fragment>
+                                )}
+                            />
                     </View>
                 </View>
 
                 <View style={styles.footer}>
-                    <TouchableOpacity style={styles.button}>
+                    <TouchableOpacity 
+                        style={[styles.button, !formState.isValid && { opacity: 0.6 }]} 
+                        onPress={saveHandler}
+                        disabled={formState.isSubmitting || !formState.isValid}
+                    >
                         <Text style={styles.text}>Save Session</Text>
                     </TouchableOpacity>
                 </View>
@@ -252,9 +328,8 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     moodEmoji: {
-        fontSize: 26,
+        fontSize: 30,
         position: 'relative',
-        top: -2,
     },
 
     /* Page input */
