@@ -1,11 +1,12 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Easing,
-    StyleSheet,
-    Text,
-    View
+  Animated,
+  Easing,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 import { Button, useTheme } from 'react-native-paper';
 
@@ -20,9 +21,11 @@ type ActionLog =
   | { action: 'pause'; time: Date; timerAtPause: Date; timerAtResume: Date | null };
 
 export default function ReadingPlayer() {
+  const router = useRouter();
   const [status, setStatus] = useState('stopped'); // 'playing' | 'paused' | 'stopped'
   const [seconds, setSeconds] = useState(0);
   const [actionLog, setActionLog] = useState<ActionLog[]>([]);
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const spinAnim = useRef(new Animated.Value(0)).current;
   const spinAnimRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -107,6 +110,7 @@ export default function ReadingPlayer() {
 
     console.log('Action Log:', actionLog);
     setActionLog([]);
+    router.push('/session-ended');
   };
 
   const formatTime = (s: number) => {
@@ -122,78 +126,84 @@ export default function ReadingPlayer() {
   });
 
   return (
-    <View style={styles.card}>
-      {/* Top row */}
-      <View style={styles.topRow}>
-        {/* Album Art */}
-        <View style={styles.albumArt}>
-          <View style={styles.albumArtInner}>
-            <Animated.View
-              style={[styles.vinylRing, { transform: [{ rotate: spin }] }]}
-            />
-            <Text style={styles.albumLabel}>PAUL'S</Text>
+    <React.Fragment>
+      <View style={styles.card}>
+        {/* Top row */}
+        <View style={styles.topRow}>
+          {/* Album Art */}
+          <View style={styles.albumArt}>
+            <View style={styles.albumArtInner}>
+              <Animated.View
+                style={[styles.vinylRing, { transform: [{ rotate: spin }] }]}
+              />
+              <Text style={styles.albumLabel}>PAUL'S</Text>
+            </View>
+          </View>
+
+          {/* Song Info */}
+          <View style={styles.songInfo}>
+            <View style={styles.songMeta}>
+              <Text style={styles.songTitle} numberOfLines={2}>{SONG.title}</Text>
+              <Text style={styles.songArtist}>{SONG.artist}</Text>
+              <Text style={styles.songAlbum}>{SONG.album.toUpperCase()}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Song Info */}
-        <View style={styles.songInfo}>
-          <View style={styles.songMeta}>
-            <Text style={styles.songTitle} numberOfLines={2}>{SONG.title}</Text>
-            <Text style={styles.songArtist}>{SONG.artist}</Text>
-            <Text style={styles.songAlbum}>{SONG.album.toUpperCase()}</Text>
+        {/* Bottom row */}
+        <View style={styles.bottomRow}>
+          <View style={styles.progressRow}>
+            {status === 'stopped' && <>
+              <View style={styles.progressMeta}>
+                <Text style={styles.progressLabel}>Pages</Text>
+                <Text style={styles.progressValue}>873</Text>
+              </View>
+
+              <View style={styles.progressMeta}>
+                <Text style={styles.progressLabel}>Left</Text>
+                <Text style={styles.progressValue}>34</Text>
+              </View>
+
+              <View style={styles.progressMeta}>
+                <Text style={styles.progressLabel}>Track</Text>
+                <Text style={[styles.progressValue, { color: '#2e8b57' }]}>74%</Text>
+              </View>
+            </>}
+
+            {(status === 'playing' || status === 'paused') && (
+              <Text style={styles.timer}>{formatTime(seconds)}</Text>
+            )}
           </View>
-        </View>
-      </View>
 
-      {/* Bottom row */}
-      <View style={styles.bottomRow}>
-        <View style={styles.progressRow}>
-          {status === 'stopped' && <>
-            <View style={styles.progressMeta}>
-              <Text style={styles.progressLabel}>Pages</Text>
-              <Text style={styles.progressValue}>873</Text>
-            </View>
-
-            <View style={styles.progressMeta}>
-              <Text style={styles.progressLabel}>Left</Text>
-              <Text style={styles.progressValue}>34</Text>
-            </View>
-
-            <View style={styles.progressMeta}>
-              <Text style={styles.progressLabel}>Track</Text>
-              <Text style={[styles.progressValue, { color: '#2e8b57' }]}>74%</Text>
-            </View>
-          </>}
-
-          {(status === 'playing' || status === 'paused') && (
-            <Text style={styles.timer}>{formatTime(seconds)}</Text>
-          )}
-        </View>
-
-        <View style={styles.controls}>
-          {(status === 'playing' || status === 'paused') && (
+          <View style={styles.controls}>
             <Button
-              icon={() => <MaterialIcons name="check" color={'#2e8b57'} size={26} />}
-              onPress={handleStop}
-              textColor={'#2e8b57'}
-              style={styles.controlButton}
-              labelStyle={{ marginLeft: 10 }}
+              icon={() => <MaterialIcons name={status === 'playing' ? 'pause' : (status === 'paused' ? 'play-arrow' : 'play-lesson')} color={theme.colors.primary} size={status === 'stopped' ? 22 : 26} />}
+              onPress={status === 'playing' ? handlePause : handlePlay}
+              style={[
+                styles.controlButton, 
+                { backgroundColor: 'rgba(30,144,255,0.05)' }, 
+                status === 'stopped' && { width: 'auto' }
+              ]}
+              labelStyle={{ marginLeft: status === 'stopped' ? 14 : 10 }}
             >
-              Finish
+              {status === 'playing' ? 'Pause' : (status === 'paused' ? 'Resume' : 'Read')}
             </Button>
-          )}
 
-          <Button
-            icon={() => <MaterialIcons name={status === 'playing' ? 'pause' : (status === 'paused' ? 'play-arrow' : 'play-lesson')} color={theme.colors.primary} size={26} />}
-            onPress={status === 'playing' ? handlePause : handlePlay}
-            style={styles.controlButton}
-            labelStyle={{ marginLeft: 10 }}
-          >
-            {status === 'playing' ? 'Pause' : (status === 'paused' ? 'Resume' : 'Read')}
-          </Button>
+            {(status === 'playing' || status === 'paused') && (
+              <Button
+                icon={() => <MaterialIcons name="check" color={'#2e8b57'} size={26} />}
+                onPress={handleStop}
+                textColor={'#2e8b57'}
+                style={[styles.controlButton, { backgroundColor: 'rgba(46,139,87,0.1)' }]}
+                labelStyle={{ marginLeft: 10 }}
+              >
+                Finish
+              </Button>
+            )}
+          </View>
         </View>
       </View>
-    </View>
+    </React.Fragment>
   );
 }
 
@@ -203,7 +213,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: '100%',
     borderWidth: 1,
-    borderColor: '#E8EEF4',
+    borderColor: '#dcdcdc',
   },
 
   // Top row
@@ -271,9 +281,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingTop: 0,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingLeft: 20,
   },
 
@@ -289,10 +299,11 @@ const styles = StyleSheet.create({
 
   // Timer
   timer: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: '#666',
     letterSpacing: 0.5,
+    fontFamily: 'Courier New, monospace',
   },
 
   // Progress Row

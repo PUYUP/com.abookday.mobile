@@ -16,7 +16,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: '#F0F7FF',
+          backgroundColor: '#f5f5f5',
           elevation: 0, // for Android
           shadowOpacity: 0, // for iOS
           borderTopWidth: 0, // Also useful for some cases
@@ -41,6 +41,13 @@ export default function TabLayout() {
         options={{
           title: 'Clubs',
           tabBarIcon: ({ color }) => <MaterialIcons name="nature-people" size={28} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="insight"
+        options={{
+          title: 'Insight',
+          tabBarIcon: ({ color }) => <MaterialIcons name="insights" size={28} color={color} />,
         }}
       />
     </Tabs>
