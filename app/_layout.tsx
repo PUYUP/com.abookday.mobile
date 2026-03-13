@@ -22,6 +22,7 @@ const theme = {
   colors: {
     ...MD3LightTheme.colors,
     primary: '#1E90FF',
+    secondary: '#ff1493',
     elevation: {
       ...MD3LightTheme.colors.elevation,
       level2: '#f5f5f5', // Set the desired default menu background color
@@ -36,7 +37,7 @@ export default function RootLayout() {
     if (Platform.OS === 'android') {
       // Set the navigation bar style
       NavigationBar.setStyle('light');
-      NavigationBar.setBackgroundColorAsync('#f5f5f5');
+      NavigationBar.setBackgroundColorAsync(theme.colors.elevation.level2);
     }
   }, []);
 
@@ -49,7 +50,9 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
               <Stack.Screen name="session-ended" options={{ presentation: 'fullScreenModal', headerShown: false }} />
-              <Stack.Screen name="adjust-goal" options={{ title: 'Adjust Goal', headerBackButtonDisplayMode: 'minimal' }} />
+              <Stack.Screen name="adjust-goal" options={{ title: 'Adjust Goal', presentation: 'fullScreenModal', headerBackTitle: 'Back' }} />
+              <Stack.Screen name="book-editor" options={{ title: 'Book Editor', headerBackTitle: 'Back' }} />
+              <Stack.Screen name="genre-selector" options={{ title: 'Select Genre', presentation: 'fullScreenModal', headerBackTitle: 'Back' }} />
             </Stack>
           </KeyboardProvider>
           <StatusBar style="auto" />

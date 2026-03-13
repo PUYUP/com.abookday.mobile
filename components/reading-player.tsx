@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   albumArt: {
-    width: 74,
+    width: 70,
     height: 84,
     borderRadius: 10,
     backgroundColor: '#1a1a1a',

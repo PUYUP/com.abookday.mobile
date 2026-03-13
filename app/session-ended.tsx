@@ -3,14 +3,14 @@ import { useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    Alert,
-    FlatList,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -68,7 +68,7 @@ export default function SessionEndedScreen() {
     control,
     handleSubmit,
     setValue,
-    formState,
+    formState: { errors, isSubmitting, isDirty },
     watch,
   } = useForm<FormValues>({
     // BUG FIX: `mode: 'onChange'` makes formState.isValid reactive so the
@@ -98,7 +98,7 @@ export default function SessionEndedScreen() {
   // from whether the form has been touched at all so the back-navigation prompt
   // doesn't appear on a completely empty form.
   // ---------------------------------------------------------------------------
-  const hasUnsavedChanges = formState.isDirty || selectedMood !== null;
+  const hasUnsavedChanges = isDirty || selectedMood !== null;
 
   useEffect(() => {
     if (submitted) return;
@@ -142,7 +142,10 @@ export default function SessionEndedScreen() {
   // when fields are empty — the manual Alert checks are redundant and removed.
   // ---------------------------------------------------------------------------
   const saveHandler = handleSubmit((data) => {
+    setSubmitted(true);
+
     if (!readingSession) return;
+    if (!data.mood) return;
 
     const alreadyHasFinish = readingSession.timer.some(
       (t) => t.action === "finish"
@@ -167,7 +170,6 @@ export default function SessionEndedScreen() {
     // dispatch({ type: 'reading/saveSession', payload });
 
     dispatch({ type: "reading/stopReading" });
-    setSubmitted(true);
     router.back();
   });
 
@@ -183,7 +185,7 @@ export default function SessionEndedScreen() {
 
   return (
     <SafeAreaView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={styles.container}
       edges={["top"]}
     >
       <KeyboardAwareScrollView
@@ -213,10 +215,6 @@ export default function SessionEndedScreen() {
 
               {/* BUG FIX: Show mood error only after a save attempt, not on
                   every render when no mood is selected. */}
-              {!selectedMood && submitted && (
-                <Text style={styles.errorText}>Please select how you feel</Text>
-              )}
-
               <FlatList
                 scrollEnabled={false}
                 keyboardShouldPersistTaps="handled"
@@ -237,6 +235,9 @@ export default function SessionEndedScreen() {
                           borderColor: mood.color,
                           backgroundColor: `${mood.color}18`,
                         },
+                        ((errors.mood || !selectedMood) && submitted) && {
+                          borderColor: "#E53E3E",
+                        },
                       ]}
                       onPress={() => setSelectedMood(mood.id)}
                       activeOpacity={0.75}
@@ -256,13 +257,13 @@ export default function SessionEndedScreen() {
               <Controller
                 control={control}
                 name="lastPage"
-                rules={{ required: true, pattern: /^\d+$/ }}
+                rules={{ required: 'Last page is required', pattern: { value: /^\d+$/, message: 'Must be a valid number' } }}
                 render={({ field: { onChange, onBlur, value }, fieldState }) => (
                   <React.Fragment>
                     <TextInput
                       style={[
                         styles.pageInput,
-                        fieldState.error && submitted ? styles.inputError : null,
+                        errors.lastPage ? styles.inputError : null,
                       ]}
                       placeholder="e.g. 142"
                       placeholderTextColor="#B0B8C1"
@@ -272,11 +273,6 @@ export default function SessionEndedScreen() {
                       onBlur={onBlur}
                       maxLength={5}
                     />
-                    {fieldState.error && submitted && (
-                      <Text style={styles.errorText}>
-                        Please enter the last page you read
-                      </Text>
-                    )}
                   </React.Fragment>
                 )}
               />
@@ -322,9 +318,9 @@ export default function SessionEndedScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.button, submitted && styles.buttonDisabled]}
+            style={[styles.button, isSubmitting && styles.buttonDisabled]}
             onPress={saveHandler}
-            disabled={formState.isSubmitting || submitted}
+            disabled={isSubmitting}
           >
             <Text style={styles.buttonText}>Save Session</Text>
           </TouchableOpacity>

@@ -1,16 +1,27 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { StyleSheet, Text, View } from 'react-native';
+import { IconButton, useTheme } from 'react-native-paper';
 
 export default function WelcomeProfile() {
+    const theme = useTheme();
+
     return (
         <View style={styles.profileRow}>
-            <View style={styles.avatar}>
-                <MaterialIcons name='account-circle' size={24} color="#fff" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ flexDirection: 'column', maxWidth: 180 }}>
+                    <Text style={styles.profileName} numberOfLines={1}>Muhammad Rahman</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <MaterialIcons name='wallet-giftcard' size={16} color={theme.colors.primary} />
+                        <Text style={[styles.fansBadge, { color: theme.colors.primary }]}>10 credits</Text>
+                    </View>
+                </View>
             </View>
-            <View style={{ flexDirection: 'column' }}>
-                <Text style={styles.profileName}>Muhammad Rahman</Text>
-                <Text style={styles.fansBadge}>Supporter</Text>
-            </View>
+
+            <IconButton
+                icon={() => <MaterialIcons name="settings" size={20} />}
+                size={20}
+                onPress={() => console.log('Pressed')}
+            />
         </View>
     )
 }
@@ -20,6 +31,7 @@ export const styles = StyleSheet.create({
     profileRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         gap: 12,
     },
     avatar: {
@@ -35,11 +47,15 @@ export const styles = StyleSheet.create({
         color: '#333',
         fontFamily: 'Inter_500Medium',
         fontWeight: '600',
-        marginBottom: 1,
+        marginBottom: 2,
     },
     fansBadge: {
         fontSize: 13,
         color: '#666',
-        fontFamily: 'Inter_400Regular',
+    },
+    topUpButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 6,
     },
 });

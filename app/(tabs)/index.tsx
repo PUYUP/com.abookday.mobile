@@ -12,7 +12,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView nestedScrollEnabled={true}>
         <View style={styles.topSection}>
-          <View style={styles.profileRow}>
+          <View style={[styles.profileRow, { paddingLeft: 6 }]}>
             <WelcomeProfile />
           </View>
 
