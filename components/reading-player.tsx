@@ -1,62 +1,99 @@
 import { BookData, StartSessionPayload, TimerLog } from '@/state/reading/reading-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Easing,
-  StyleSheet,
-  Text,
-  View
-} from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Button, useTheme } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 const BOOK_DATA: BookData = {
   id: '1',
   title: 'Dari Logika Mistika, Lewat Filsafat, Menuju Ilmu Pengetahuan',
   author: 'Cania Citta',
-  genre: "Novel",
+  genre: 'Novel',
 };
+
+type Status = 'stopped' | 'reading' | 'paused';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const formatTime = (totalSeconds: number): string => {
+  const hrs = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+  const mins = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+  const secs = (totalSeconds % 60).toString().padStart(2, '0');
+  return `${hrs}:${mins}:${secs}`;
+};
+
+const nowISO = () => new Date().toISOString();
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function ReadingPlayer() {
   const router = useRouter();
-  const [status, setStatus] = useState('stopped'); // 'reading' | 'paused' | 'stopped'
+  const theme = useTheme();
+  const dispatch = useDispatch();
+  const readingState = useSelector((state: any) => state.reading);
+
+  const [status, setStatus] = useState<Status>('stopped');
   const [seconds, setSeconds] = useState(0);
-  const [actionLog, setActionLog] = useState<TimerLog[]>([]);
+
+  // BUG FIX: Use a ref for the action log so mutations are immediately
+  // visible to handlers without waiting for a re-render cycle.
+  // We also keep a state copy so the component re-renders when the log changes.
+  const actionLogRef = useRef<TimerLog[]>([]);
+  const [, forceUpdate] = useState(0); // trigger re-render when log mutates
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const spinAnim = useRef(new Animated.Value(0)).current;
   const spinAnimRef = useRef<Animated.CompositeAnimation | null>(null);
-  const theme = useTheme();
 
-  // Redux
-  const dispatch = useDispatch();
-  const readingState = useSelector((state: any) => state.reading);
+  // BUG FIX: Track whether the stop was initiated internally to avoid the
+  // Redux-watcher → handleStop → dispatch loop.
+  const isStoppingRef = useRef(false);
 
-  const logAction = (action: TimerLog) => {
-    setActionLog((prev) => [...prev, action]);
-  };
+  // -------------------------------------------------------------------------
+  // Log helpers — operate on the ref so handlers always see the latest state
+  // -------------------------------------------------------------------------
 
-  const patchLastPauseWithResume = (timerAtResume: Date) => {
-    setActionLog((prev) => {
-      const next = [...prev];
-      for (let i = next.length - 1; i >= 0; i--) {
-        if (next[i].action === 'pause') {
-          next[i] = { ...next[i], timerAtResume: timerAtResume.toISOString() } as TimerLog;
-          break;
-        }
+  const appendLog = useCallback((entry: TimerLog) => {
+    actionLogRef.current = [...actionLogRef.current, entry];
+    forceUpdate((n) => n + 1);
+  }, []);
+
+  // BUG FIX: patchLastPauseWithResume now receives the exact same timestamp
+  // that was already written into the resume log entry for consistency.
+  const patchLastPauseWithResume = useCallback((timerAtResume: string) => {
+    const log = [...actionLogRef.current];
+    for (let i = log.length - 1; i >= 0; i--) {
+      if (log[i].action === 'pause') {
+        log[i] = { ...log[i], timerAtResume };
+        break;
       }
-      return next;
-    });
-  };
+    }
+    actionLogRef.current = log;
+    forceUpdate((n) => n + 1);
+  }, []);
 
+  const resetLog = useCallback(() => {
+    actionLogRef.current = [];
+    forceUpdate((n) => n + 1);
+  }, []);
+
+  // -------------------------------------------------------------------------
   // Timer
+  // -------------------------------------------------------------------------
+
   useEffect(() => {
     if (status === 'reading') {
-      intervalRef.current = setInterval(() => {
-        setSeconds((s) => s + 1);
-      }, 1000);
+      intervalRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -71,7 +108,11 @@ export default function ReadingPlayer() {
     };
   }, [status]);
 
+  // -------------------------------------------------------------------------
   // Vinyl spin animation
+  // BUG FIX: Reset spinAnim to 0 when stopping so the next start has no jump.
+  // -------------------------------------------------------------------------
+
   useEffect(() => {
     if (status === 'reading') {
       spinAnimRef.current = Animated.loop(
@@ -86,83 +127,120 @@ export default function ReadingPlayer() {
     } else {
       spinAnimRef.current?.stop();
       spinAnimRef.current = null;
+      if (status === 'stopped') {
+        spinAnim.setValue(0);
+      }
     }
-  }, [status]);
+  }, [status, spinAnim]);
 
-  // Reading state changed in store
+  // -------------------------------------------------------------------------
+  // Redux status watcher
+  // BUG FIX: Guard with isStoppingRef to prevent recursive stop dispatch.
+  // -------------------------------------------------------------------------
+
   useEffect(() => {
-    if (readingState.status === 'stopped') {
+    if (readingState.status === 'stopped' && !isStoppingRef.current) {
       handleStop();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readingState.status]);
 
-  // Start reading session
-  const handleRead = () => {
-    if (status !== 'reading') {
-      if (status === 'paused') {
-        patchLastPauseWithResume(new Date());
-        logAction({ action: 'resume', time: new Date().toISOString() });
-      } else {
-        logAction({ action: 'start', time: new Date().toISOString() });
+  // -------------------------------------------------------------------------
+  // Handlers
+  // -------------------------------------------------------------------------
+
+  const handleRead = useCallback(() => {
+    if (status === 'reading') return;
+
+    const time = nowISO();
+
+    if (status === 'paused') {
+      // BUG FIX: patch and append use the same timestamp.
+      patchLastPauseWithResume(time);
+      appendLog({ action: 'resume', time });
+    } else {
+      appendLog({ action: 'start', time });
+    }
+
+    setStatus('reading');
+
+    // BUG FIX: Build the payload from the ref (already updated above) rather
+    // than from a potentially-stale state variable.
+    const payload: StartSessionPayload = {
+      bookId: BOOK_DATA.id,
+      bookTitle: BOOK_DATA.title,
+      startPage: '1',
+      timer: [...actionLogRef.current],
+    };
+
+    dispatch({ type: 'reading/startReading', payload });
+  }, [status, appendLog, patchLastPauseWithResume, dispatch]);
+
+  const handlePause = useCallback(
+    (action: string = '') => {
+      if (status === 'reading') {
+        const time = nowISO();
+        appendLog({ action: 'pause', time, timerAtPause: time, timerAtResume: undefined });
+        setStatus('paused');
+
+        // BUG FIX: dispatch after appending so the payload includes the new entry.
+        dispatch({
+          type: 'reading/pauseReading',
+          payload: { timer: [...actionLogRef.current] },
+        });
       }
-      setStatus('reading');
 
-      // insert into store here
-      const lastAction = actionLog[actionLog.length - 1];
-      const payload: StartSessionPayload = {
-        bookId: BOOK_DATA.id,
-        bookTitle: BOOK_DATA.title,
-        startPage: '1',
-        timer: [...actionLog, lastAction ? { ...lastAction, time: lastAction.time } : { action: 'start', time: new Date().toISOString() }],
-      };
+      if (action === 'stopped') {
+        router.push('/session-ended');
+      }
+    },
+    [status, appendLog, dispatch, router]
+  );
 
-      dispatch({ type: 'reading/startReading', payload });
-    }
-  };
+  // BUG FIX: handleStop is now idempotent — guarded by isStoppingRef so it
+  // never triggers a second dispatch cycle from the Redux watcher.
+  const handleStop = useCallback(() => {
+    if (isStoppingRef.current) return;
+    isStoppingRef.current = true;
 
-  const handlePause = (action: string = '') => {
-    if (status === 'reading') {
-      logAction({ action: 'pause', time: new Date().toISOString(), timerAtPause: new Date().toISOString(), timerAtResume: undefined });
-      setStatus('paused');
-
-      dispatch({ type: 'reading/pauseReading', payload: { timer: actionLog } });
-    }
-
-    // open confirmation dialog if action is 'stopped'
-    if (action === 'stopped') {
-      router.push('/session-ended');
-    }
-  };
-
-  const handleStop = () => {
-    const finishEntry: TimerLog = { action: 'finish', time: new Date().toISOString() };
-    const finalLog = [...actionLog, finishEntry];
+    const finishEntry: TimerLog = { action: 'finish', time: nowISO() };
+    const finalLog = [...actionLogRef.current, finishEntry];
 
     dispatch({ type: 'reading/finishReading', payload: { timer: finalLog } });
 
     setStatus('stopped');
     setSeconds(0);
-    setActionLog([]);
-  };
+    resetLog();
 
-  const formatTime = (s: number) => {
-    const hrs = Math.floor(s / 3600).toString().padStart(2, '0');
-    const mins = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
-    const sec = (s % 60).toString().padStart(2, '0');
-    return `${hrs}:${mins}:${sec}`;
-  };
+    isStoppingRef.current = false;
+  }, [dispatch, resetLog]);
+
+  // -------------------------------------------------------------------------
+  // Derived values
+  // -------------------------------------------------------------------------
 
   const spin = spinAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
 
+  const isActive = status === 'reading' || status === 'paused';
+
+  const playPauseIcon =
+    status === 'reading' ? 'pause' : status === 'paused' ? 'play-arrow' : 'play-lesson';
+
+  const playPauseLabel =
+    status === 'reading' ? 'Pause' : status === 'paused' ? 'Resume' : 'Read';
+
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
+
   return (
     <React.Fragment>
       <View style={styles.card}>
         {/* Top row */}
         <View style={styles.topRow}>
-          {/* Album Art */}
           <View style={styles.albumArt}>
             <View style={styles.albumArtInner}>
               <Animated.View
@@ -172,11 +250,14 @@ export default function ReadingPlayer() {
             </View>
           </View>
 
-          {/* Song Info */}
           <View style={styles.songInfo}>
             <View style={styles.songMeta}>
-              <Text style={styles.songTitle} numberOfLines={2}>{BOOK_DATA.title}</Text>
-              {BOOK_DATA.author && <Text style={styles.songArtist}>{BOOK_DATA.author}</Text>}
+              <Text style={styles.songTitle} numberOfLines={2}>
+                {BOOK_DATA.title}
+              </Text>
+              {BOOK_DATA.author && (
+                <Text style={styles.songArtist}>{BOOK_DATA.author}</Text>
+              )}
               <Text style={styles.songAlbum}>{BOOK_DATA.genre.toUpperCase()}</Text>
             </View>
           </View>
@@ -185,47 +266,51 @@ export default function ReadingPlayer() {
         {/* Bottom row */}
         <View style={styles.bottomRow}>
           <View style={styles.progressRow}>
-            {status === 'stopped' && <>
-              <View style={styles.progressMeta}>
-                <Text style={styles.progressLabel}>Pages</Text>
-                <Text style={styles.progressValue}>873</Text>
-              </View>
-
-              <View style={styles.progressMeta}>
-                <Text style={styles.progressLabel}>Left</Text>
-                <Text style={styles.progressValue}>34</Text>
-              </View>
-
-              <View style={styles.progressMeta}>
-                <Text style={styles.progressLabel}>Track</Text>
-                <Text style={[styles.progressValue, { color: '#2e8b57' }]}>74%</Text>
-              </View>
-            </>}
-
-            {(status === 'reading' || status === 'paused') && (
+            {status === 'stopped' ? (
+              <>
+                <View style={styles.progressMeta}>
+                  <Text style={styles.progressLabel}>Pages</Text>
+                  <Text style={styles.progressValue}>873</Text>
+                </View>
+                <View style={styles.progressMeta}>
+                  <Text style={styles.progressLabel}>Left</Text>
+                  <Text style={styles.progressValue}>34</Text>
+                </View>
+                <View style={styles.progressMeta}>
+                  <Text style={styles.progressLabel}>Track</Text>
+                  <Text style={[styles.progressValue, { color: '#2e8b57' }]}>74%</Text>
+                </View>
+              </>
+            ) : (
               <Text style={styles.timer}>{formatTime(seconds)}</Text>
             )}
           </View>
 
           <View style={styles.controls}>
             <Button
-              icon={() => <MaterialIcons name={status === 'reading' ? 'pause' : (status === 'paused' ? 'play-arrow' : 'play-lesson')} color={theme.colors.primary} size={status === 'stopped' ? 22 : 26} />}
+              icon={() => (
+                <MaterialIcons
+                  name={playPauseIcon}
+                  color={theme.colors.primary}
+                  size={status === 'stopped' ? 22 : 26}
+                />
+              )}
               onPress={status === 'reading' ? () => handlePause() : handleRead}
               style={[
-                styles.controlButton, 
-                { backgroundColor: 'rgba(30,144,255,0.05)' }, 
-                status === 'stopped' && { width: 'auto' }
+                styles.controlButton,
+                { backgroundColor: 'rgba(30,144,255,0.05)' },
+                status === 'stopped' && { width: 'auto' },
               ]}
               labelStyle={{ marginLeft: status === 'stopped' ? 14 : 10 }}
             >
-              {status === 'reading' ? 'Pause' : (status === 'paused' ? 'Resume' : 'Read')}
+              {playPauseLabel}
             </Button>
 
-            {(status === 'reading' || status === 'paused') && (
+            {isActive && (
               <Button
-                icon={() => <MaterialIcons name="check" color={'#2e8b57'} size={26} />}
+                icon={() => <MaterialIcons name="check" color="#2e8b57" size={26} />}
                 onPress={() => handlePause('stopped')}
-                textColor={'#2e8b57'}
+                textColor="#2e8b57"
                 style={[styles.controlButton, { backgroundColor: 'rgba(46,139,87,0.1)' }]}
                 labelStyle={{ marginLeft: 10 }}
               >
@@ -239,6 +324,10 @@ export default function ReadingPlayer() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#ffffff',
@@ -247,8 +336,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#dcdcdc',
   },
-
-  // Top row
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -307,8 +394,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     letterSpacing: 0.8,
   },
-
-  // Bottom row
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -318,8 +403,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingLeft: 20,
   },
-
-  // Controls
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -328,8 +411,6 @@ const styles = StyleSheet.create({
   controlButton: {
     width: 100,
   },
-
-  // Timer
   timer: {
     fontSize: 20,
     fontWeight: '800',
@@ -337,8 +418,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     fontFamily: 'Courier New, monospace',
   },
-
-  // Progress Row
   progressRow: {
     flexDirection: 'row',
   },
