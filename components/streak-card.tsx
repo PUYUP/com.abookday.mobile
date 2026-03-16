@@ -261,7 +261,7 @@ function buildWeeklyStreaks(): StreakInfo[] {
     id: `${w.startDate.getTime()}`,
     icon: 'whatshot' as const,
     color: '#EF4444',
-    label: `W. ${w.week}`,
+    label: `W.${w.week}`,
     value: Math.floor(Math.random() * 60).toString(),
     unit: 'week',
     num: w.week,

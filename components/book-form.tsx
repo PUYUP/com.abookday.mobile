@@ -2,14 +2,15 @@ import { useRouter } from 'expo-router';
 import React, { forwardRef, useImperativeHandle } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const GENRES = [
@@ -30,6 +31,7 @@ export type BookFormData = {
   author: string;
   genre: string;
   totalPages: string;
+  isReading: boolean;
 };
 
 export type BookFormProps = {
@@ -57,6 +59,7 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
       author: '',
       genre: '',
       totalPages: '',
+      isReading: true,
       ...defaultValues,
     },
   });
@@ -64,6 +67,7 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
   const selectedGenre = watch('genre');
 
   const handleFormSubmit = (data: BookFormData) => {
+    console.log('Form submitted with data:', data);
     if (onSubmit) {
       onSubmit(data);
     } else {
@@ -95,7 +99,7 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   style={[styles.input, errors.title && styles.inputError]}
-                  placeholder="Enter book title"
+                  placeholder="Book title"
                   placeholderTextColor={colors.placeholder}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -107,39 +111,60 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
             {errors.title && <Text style={styles.errorText}>{errors.title.message}</Text>}
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Total Pages*</Text>
-            <Controller
-              control={control}
-              name="totalPages"
-              rules={{
-                required: 'Total pages is required',
-                pattern: {
-                  value: /^\d+$/,
-                  message: 'Must be a valid number',
-                },
-                min: { value: 1, message: 'Must be at least 1 page' },
-              }}
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  style={[styles.input, errors.totalPages && styles.inputError]}
-                  placeholder="e.g. 320"
-                  placeholderTextColor={colors.placeholder}
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  keyboardType="number-pad"
-                  returnKeyType="done"
-                />
+          <View style={[styles.fieldGroup, { flexDirection: 'row', gap: 20 }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.label, { marginBottom: 6 }]}>Total Pages*</Text>
+              <Controller
+                control={control}
+                name="totalPages"
+                rules={{
+                  required: 'Total pages is required',
+                  pattern: {
+                    value: /^\d+$/,
+                    message: 'Must be a valid number',
+                  },
+                  min: { value: 1, message: 'Must be at least 1 page' },
+                }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={[styles.input, errors.totalPages && styles.inputError]}
+                    placeholder="e.g. 320"
+                    placeholderTextColor={colors.placeholder}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    keyboardType="number-pad"
+                    returnKeyType="done"
+                  />
+                )}
+              />
+              {errors.totalPages && (
+                <Text style={styles.errorText}>{errors.totalPages.message}</Text>
               )}
-            />
-            {errors.totalPages && (
-              <Text style={styles.errorText}>{errors.totalPages.message}</Text>
-            )}
+            </View>
+
+            <View style={{ paddingTop: 2 }}>
+              <Text style={[styles.label, { marginBottom: 6 }]}>Reading Now</Text>
+              <Controller
+                control={control}
+                name="isReading"
+                rules={{ required: false }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <View style={{ paddingTop: 6 }}>
+                    <Switch
+                      trackColor={{false: '#767577', true: '#32cd32'}}
+                      thumbColor={value == true ? '#f0fff0' : '#f4f3f4'}
+                      onValueChange={onChange}
+                      value={value}
+                    />
+                  </View>
+                )}
+              />
+            </View>
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Author</Text>
+            <Text style={styles.label}>Author (Optional)</Text>
             <Controller
               control={control}
               name="author"
@@ -147,7 +172,7 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   style={[styles.input, errors.author && styles.inputError]}
-                  placeholder="Enter author name"
+                  placeholder="Author name"
                   placeholderTextColor={colors.placeholder}
                   onBlur={onBlur}
                   onChangeText={onChange}
@@ -160,7 +185,7 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Genre</Text>
+            <Text style={styles.label}>Genre (Optional)</Text>
             <Controller
               control={control}
               name="genre"
@@ -172,7 +197,7 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
                   activeOpacity={0.7}
                 >
                   <Text style={selectedGenre ? styles.selectText : styles.selectPlaceholder}>
-                    {selectedGenre || 'Select a genre'}
+                    {selectedGenre || 'Select genre'}
                   </Text>
                   <Text style={styles.chevron}>▼</Text>
                 </TouchableOpacity>

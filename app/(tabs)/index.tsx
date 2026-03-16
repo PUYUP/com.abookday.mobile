@@ -3,15 +3,13 @@ import StreakCard from '@/components/streak-card';
 import WelcomeProfile from '@/components/welcome-profile';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
-  const insets = useSafeAreaInsets();
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView nestedScrollEnabled={true}>
-        <View style={styles.topSection}>
+        <View style={styles.scrollContent}>
           <View style={[styles.profileRow, { paddingLeft: 6 }]}>
             <WelcomeProfile />
           </View>
@@ -31,18 +29,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  container: {
-    justifyContent: 'space-between',
-  },
-  topSection: {
+  scrollContent: {
     flex: 1,
     padding: 16,
   },
-  bottomSection: {
-    paddingHorizontal: 16,
-    justifyContent: 'flex-end',
-  },
-
   profileRow: {
     marginBottom: 16,
   }

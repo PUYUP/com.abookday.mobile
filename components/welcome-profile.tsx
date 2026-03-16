@@ -47,7 +47,7 @@ export const styles = StyleSheet.create({
         color: '#333',
         fontFamily: 'Inter_500Medium',
         fontWeight: '600',
-        marginBottom: 2,
+        marginBottom: 4,
     },
     fansBadge: {
         fontSize: 13,

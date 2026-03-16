@@ -1,9 +1,65 @@
+import BookItem from '@/components/book-item';
+import { BookDetails } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useRouter } from 'expo-router';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Button, useTheme } from 'react-native-paper';
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const BOOKS: BookDetails[] = [
+  {
+    id: '1',
+    title: 'The Midnight Library',
+    author: 'Matt Haig',
+    genre: 'Fiction',
+    coverImageUri: 'https://images.unsplash.com/photo-1544931219-17beab1abd6c',
+    description: 'A woman explores parallel lives in a mysterious library.',
+    totalPages: 304,
+    lastReadPage: 76,
+  },
+  {
+    id: '2',
+    title: 'Atomic Habits',
+    author: 'James Clear',
+    genre: 'Self-Help',
+    coverImageUri: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f',
+    description: 'Tiny habits compounding into remarkable results.',
+    totalPages: 320,
+    lastReadPage: 120,
+  },
+  {
+    id: '3',
+    title: 'Educated',
+    author: 'Tara Westover',
+    genre: 'Memoir',
+    coverImageUri: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d',
+    description: 'A memoir about a woman who leaves her survivalist family to learn.',
+    totalPages: 352,
+    lastReadPage: 210,
+  },
+  {
+    id: '4',
+    title: 'Project Hail Mary with Sebastian Junger the Villages',
+    author: 'Andy Weir',
+    genre: 'Science Fiction',
+    coverImageUri: 'https://images.unsplash.com/photo-1470229538611-16ba8c7ffbd7',
+    description: 'A lone astronaut must save Earth from a dying sun.',
+    totalPages: 476,
+    lastReadPage: 58,
+  },
+  {
+    id: '5',
+    title: 'Braiding Sweetgrass',
+    author: 'Robin Wall Kimmerer',
+    genre: 'Nature',
+    coverImageUri: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee',
+    description: 'Indigenous wisdom and plant science woven together.',
+    totalPages: 408,
+    lastReadPage: 145,
+  },
+];
 
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
@@ -11,7 +67,7 @@ export default function LibraryScreen() {
   const theme = useTheme();
   
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <React.Fragment>
       <Stack.Screen
         options={{
           headerShown: true,
@@ -43,12 +99,24 @@ export default function LibraryScreen() {
           )
         }}
       />
-    </SafeAreaView>
+
+      <SafeAreaView style={styles.safeArea} edges={[]}>
+        <ScrollView nestedScrollEnabled={true}>
+          <View style={styles.scrollContent}>
+            {BOOKS.map((book) => (
+              <View key={book.id} style={styles.bookCardWrapper}>
+                <BookItem book={book} />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </React.Fragment>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
@@ -56,6 +124,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#f5f5f5',
     paddingHorizontal: 12,
+    paddingLeft: 16,
     paddingBottom: 16,
     alignItems: 'center',
     gap: 8,
@@ -76,5 +145,15 @@ const styles = StyleSheet.create({
   },
   addBookButton: {
     width: 80,
-  }
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    flex: 1,
+  },
+  bookCardWrapper: {
+    marginBottom: 12,
+  },
 });
