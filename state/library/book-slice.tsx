@@ -7,4 +7,5 @@ export interface BookDetails {
   description?: string;
   totalPages?: number;
   lastReadPage?: number;
+  status?: 'reading' | 'paused' | 'finished' | 'archived';
 }

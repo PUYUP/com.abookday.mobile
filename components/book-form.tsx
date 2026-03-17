@@ -59,7 +59,7 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
       author: '',
       genre: '',
       totalPages: '',
-      isReading: true,
+      isReading: false,
       ...defaultValues,
     },
   });

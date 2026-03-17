@@ -1,13 +1,16 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BookDetails } from '@/state/library/book-slice';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
 
 type Props = {
     book: BookDetails;
 };
 
 export default function BookItem({ book }: Props) {
+    const router = useRouter();
     const totalPages = book.totalPages ?? 0;
     const lastReadPage = Math.max(0, Math.min(book.lastReadPage ?? 0, totalPages || Number.MAX_SAFE_INTEGER));
 
@@ -15,7 +18,7 @@ export default function BookItem({ book }: Props) {
     const progressPct = Math.round(progress * 100);
 
     return (
-        <View style={styles.container}>
+        <TouchableOpacity style={styles.container} onPress={() => router.push(`/books/${book.id}`)}>
             <View style={styles.cover}>
                 {book.coverImageUri ? (
                     <Image source={{ uri: book.coverImageUri }} style={styles.coverImage} />
@@ -39,22 +42,54 @@ export default function BookItem({ book }: Props) {
                     )}
                 </View>
 
-                <View style={styles.progressCard}>
-                    <Text style={styles.pages}>{totalPages}</Text>
-
-                    <View style={styles.trackContainer}>
-                        <View style={styles.track}>
-                            <View style={[styles.trackFill, { width: `${progressPct}%` }]} />
-                            <View style={[styles.trackGlow, { width: `${progressPct}%` }]} />
+                <View style={styles.progressRow}>
+                    {book.status === 'reading' && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                            <MaterialIcons name="book" size={14} color="#228b22" />
+                            <Text style={[styles.readingStatus, { color: '#228b22' }]}>Reading</Text>
                         </View>
-                    </View>
+                    )}
 
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{progressPct}%</Text>
-                    </View>
+                    {book.status === 'finished' && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                            <MaterialIcons name="check" size={14} color="#8a2be2" />
+                            <Text style={[styles.readingStatus, { color: '#8a2be2' }]}>Finished</Text>
+                        </View>
+                    )}
+
+                    {book.status === 'archived' && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                            <MaterialIcons name="archive" size={14} color="#ff4500" />
+                            <Text style={[styles.readingStatus, { color: '#ff4500' }]}>Archived</Text>
+                        </View>
+                    )}
+
+                    {book.status === 'paused' && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                            <MaterialIcons name="pause" size={14} color="#dc143c" />
+                            <Text style={[styles.readingStatus, { color: '#dc143c' }]}>Paused</Text>
+                        </View>
+                    )}
+                    
+                    {book.status !== 'archived' && (
+                        <View style={styles.progressCard}>
+                            <Text style={styles.pages}>{totalPages}</Text>
+
+                            <View style={styles.trackContainer}>
+                                <View style={styles.track}>
+                                    <View style={[styles.trackFill, { width: `${progressPct}%` }]} />
+                                    <View style={[styles.trackGlow, { width: `${progressPct}%` }]} />
+                                </View>
+                            </View>
+
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{progressPct}%</Text>
+                            </View>
+                        </View>
+                    )}
                 </View>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 }
 
@@ -71,8 +106,8 @@ export const styles = StyleSheet.create({
         borderColor: '#e2e8f0',
     },
     cover: {
-        width: 60,
-        height: 90,
+        width: 80,
+        height: 100,
         backgroundColor: '#ccc',
         borderRadius: 8,
         overflow: 'hidden',
@@ -149,5 +184,11 @@ export const styles = StyleSheet.create({
         fontSize: 12,
         color: '#1e293b',
         fontWeight: '700',
+    },
+    progressRow: {
+        marginTop: 'auto',
+    },
+    readingStatus: {
+        fontSize: 12,
     },
 });

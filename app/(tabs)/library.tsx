@@ -18,6 +18,7 @@ const BOOKS: BookDetails[] = [
     description: 'A woman explores parallel lives in a mysterious library.',
     totalPages: 304,
     lastReadPage: 76,
+    status: 'paused',
   },
   {
     id: '2',
@@ -28,6 +29,7 @@ const BOOKS: BookDetails[] = [
     description: 'Tiny habits compounding into remarkable results.',
     totalPages: 320,
     lastReadPage: 120,
+    status: 'finished',
   },
   {
     id: '3',
@@ -38,6 +40,7 @@ const BOOKS: BookDetails[] = [
     description: 'A memoir about a woman who leaves her survivalist family to learn.',
     totalPages: 352,
     lastReadPage: 210,
+    status: 'reading',
   },
   {
     id: '4',
@@ -48,6 +51,7 @@ const BOOKS: BookDetails[] = [
     description: 'A lone astronaut must save Earth from a dying sun.',
     totalPages: 476,
     lastReadPage: 58,
+    status: 'reading',
   },
   {
     id: '5',
@@ -58,6 +62,7 @@ const BOOKS: BookDetails[] = [
     description: 'Indigenous wisdom and plant science woven together.',
     totalPages: 408,
     lastReadPage: 145,
+    status: 'archived',
   },
 ];
 
