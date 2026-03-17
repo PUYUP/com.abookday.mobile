@@ -14,7 +14,8 @@ export type MoodOption =
   | 'thoughtful'
   | 'inspired'
   | 'emotional'
-  | 'sleepy';
+  | 'sleepy'
+  | null; // null means "not set yet" — distinct from any of the actual moods
 
 export type ActionLog = 'start' | 'pause' | 'resume' | 'finish';
 
@@ -35,16 +36,19 @@ export interface TimerLog {
 export interface SessionData {
   bookId: string;
   bookTitle: string;
-  mood?: MoodOption;
-  lastPage?: string;
+  mood: MoodOption;
+  startPage: number;
+  lastPage: number;
   timer: TimerLog[];
+  startTime?: string; // ISO string of when the session started
+  endTime?: string; // ISO string of when the session ended (timer finished) — set on finishReading, before save
   note?: string;
 }
 
 export interface StartSessionPayload {
   bookId: string;
   bookTitle: string;
-  startPage: string;
+  startPage: number;
   timer: TimerLog[];
 }
 
@@ -90,6 +94,9 @@ export const readingSlice = createSlice({
         bookId: action.payload.bookId,
         bookTitle: action.payload.bookTitle,
         timer: action.payload.timer,
+        startPage: action.payload.startPage,
+        lastPage: 0,
+        mood: null,
         // mood, lastPage, note intentionally omitted — set only on save
       };
     },

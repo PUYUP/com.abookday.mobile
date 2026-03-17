@@ -1,3 +1,4 @@
+import SessionList from '@/components/session-list';
 import { BookDetails } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { addDays, format } from 'date-fns';
@@ -180,7 +181,7 @@ export default function BookDetailScreen() {
                 }}
             />
 
-            <SafeAreaView style={styles.container} edges={[]}>
+            <SafeAreaView style={styles.container} edges={['bottom']}>
                 <ScrollView nestedScrollEnabled>
                     {/* Book info */}
                     <View style={styles.detailRow}>
@@ -220,8 +221,8 @@ export default function BookDetailScreen() {
 
                     {/* Reading stats */}
                     <View style={styles.readingStatsRow}>
-                        <View style={styles.readingStatsHeader}>
-                            <Text style={styles.readingStatsHeaderText}>Reading Activity</Text>
+                        <View style={[styles.readingStatsHeader, { marginBottom: 18 }]}>
+                            <Text style={styles.readingStatsHeaderText}>Reading Insights</Text>
                         </View>
 
                         <View style={styles.statsRow}>
@@ -245,6 +246,12 @@ export default function BookDetailScreen() {
                     </View>
 
                     <ChartComponent />
+
+                    <View style={[styles.readingStatsRow, { marginBottom: 14, paddingHorizontal: 16, paddingBottom: 0, marginTop: 20 }]}>
+                        <Text style={styles.readingStatsHeaderText}>Reading Sessions</Text>
+                    </View>
+
+                    <SessionList book={BOOK} />
                 </ScrollView>
             </SafeAreaView>
         </React.Fragment>

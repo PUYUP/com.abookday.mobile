@@ -40,7 +40,7 @@ const NOTE_MAX_LENGTH = 300;
 
 type FormValues = {
   mood: MoodOption | undefined;
-  lastPage: string;
+  lastPage: number;
   note: string;
 };
 
@@ -78,7 +78,7 @@ export default function SessionEndedScreen() {
     mode: "onChange",
     defaultValues: {
       mood: undefined,
-      lastPage: "",
+      lastPage: 0,
       note: "",
     },
   });
@@ -154,6 +154,7 @@ export default function SessionEndedScreen() {
     const payload: SessionData = {
       ...readingSession,
       mood: data.mood,
+      startPage: readingSession.startPage ?? 0,
       lastPage: data.lastPage,
       note: data.note,
       timer: alreadyHasFinish
@@ -268,7 +269,7 @@ export default function SessionEndedScreen() {
                       placeholder="e.g. 142"
                       placeholderTextColor="#B0B8C1"
                       keyboardType="number-pad"
-                      value={value}
+                      value={value.toLocaleString()}
                       onChangeText={onChange}
                       onBlur={onBlur}
                       maxLength={5}
