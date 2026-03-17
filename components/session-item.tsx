@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { SessionData } from '@/state/reading/reading-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { differenceInMinutes, format } from 'date-fns';
+import { useTheme } from 'react-native-paper';
 
 type Props = {
     session: SessionData;
@@ -25,13 +26,20 @@ function formatDuration(startTime?: string, endTime?: string): string | null {
 }
 
 export default function SessionItem({ session }: Props) {
+    const theme = useTheme();
     const pagesRead = (session.lastPage ?? 0) - session.startPage;
     const duration = formatDuration(session.startTime, session.endTime);
     const moodEmoji = session.mood ? MOOD_EMOJI[session.mood] : null;
 
     return (
         <View style={styles.container}>
-            <View style={{ flexDirection: 'row', alignItems: session.note ? 'flex-start' : 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                {moodEmoji && (
+                    <View style={[styles.mood, !session.note && styles.moodInline]}>
+                        <Text style={styles.moodText}>{moodEmoji}</Text>
+                    </View>
+                )}
+                
                 <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         {session.startTime && (
@@ -54,11 +62,9 @@ export default function SessionItem({ session }: Props) {
                     </View>
                 </View>
 
-                {moodEmoji && (
-                    <View style={[styles.mood, !session.note && styles.moodInline]}>
-                        <Text style={styles.moodText}>{moodEmoji}</Text>
-                    </View>
-                )}
+                <TouchableOpacity style={{ padding: 2 }} onPress={() => { /* TODO: navigate to session details/edit screen */ }}>
+                    <Text style={{ color: theme.colors.primary, fontSize: 14 }}>Edit</Text>
+                </TouchableOpacity>
             </View>
 
             {session.note && (
@@ -82,16 +88,14 @@ const styles = StyleSheet.create({
     },
     mood: {
         alignItems: 'center',
-        position: 'absolute',
-        top: -2,
-        right: -4,
+        
     },
     moodInline: {
         position: 'relative',
         top: 0,
     },
     moodText: {
-        fontSize: 26,
+        fontSize: 22,
         marginTop: -4,
     },
     value: {
