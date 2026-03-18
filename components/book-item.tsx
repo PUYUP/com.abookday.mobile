@@ -4,12 +4,14 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BookDetails } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
+import { useTheme } from 'react-native-paper';
 
 type Props = {
     book: BookDetails;
 };
 
 export default function BookItem({ book }: Props) {
+    const theme = useTheme();   
     const router = useRouter();
     const totalPages = book.totalPages ?? 0;
     const lastReadPage = Math.max(0, Math.min(book.lastReadPage ?? 0, totalPages || Number.MAX_SAFE_INTEGER));
@@ -45,35 +47,40 @@ export default function BookItem({ book }: Props) {
                 <View style={styles.progressRow}>
                     {book.status === 'reading' && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                            <MaterialIcons name="book" size={14} color="#228b22" />
-                            <Text style={[styles.readingStatus, { color: '#228b22' }]}>Reading</Text>
+                            <MaterialIcons name="book" size={14} color={theme.colors.primary} />
+                            <Text style={[styles.readingStatus, { color: theme.colors.primary }]}>Reading</Text>
                         </View>
                     )}
 
                     {book.status === 'finished' && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                            <MaterialIcons name="check" size={14} color="#8a2be2" />
-                            <Text style={[styles.readingStatus, { color: '#8a2be2' }]}>Finished</Text>
+                            <MaterialIcons name="check" size={14} color="#228b22" />
+                            <Text style={[styles.readingStatus, { color: '#228b22' }]}>Finished</Text>
                         </View>
                     )}
 
                     {book.status === 'archived' && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                            <MaterialIcons name="archive" size={14} color="#ff4500" />
-                            <Text style={[styles.readingStatus, { color: '#ff4500' }]}>Archived</Text>
+                            <MaterialIcons name="archive" size={14} color="#696969" />
+                            <Text style={[styles.readingStatus, { color: '#696969' }]}>Archived</Text>
                         </View>
                     )}
 
                     {book.status === 'paused' && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                            <MaterialIcons name="pause" size={14} color="#dc143c" />
-                            <Text style={[styles.readingStatus, { color: '#dc143c' }]}>Paused</Text>
+                            <MaterialIcons name="pause" size={14} color="#ff8c00" />
+                            <Text style={[styles.readingStatus, { color: '#ff8c00' }]}>Paused</Text>
                         </View>
                     )}
                     
                     {book.status !== 'archived' && (
                         <View style={styles.progressCard}>
-                            <Text style={styles.pages}>{totalPages}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Text style={styles.pages}>{lastReadPage}</Text>
+                                <Text style={[styles.pages, { fontWeight: 'normal' }]}>of</Text>
+                                <Text style={styles.pages}>{totalPages}</Text>
+                                <Text style={[styles.pages, { fontWeight: 'normal' }]}>pages</Text>
+                            </View>
 
                             <View style={styles.trackContainer}>
                                 <View style={styles.track}>
