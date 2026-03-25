@@ -22,12 +22,6 @@ export default function BookEditorScreen() {
             <Stack.Screen
                 options={{
                     headerStyle: { backgroundColor: '#fff' },
-                    // headerLeft: () => (
-                    //     <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                    //         <MaterialIcons name="arrow-back-ios" size={22} color={theme.colors.primary} />
-                    //         <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '600' }}>Back</Text>
-                    //     </TouchableOpacity>
-                    // ),
                     headerRight: () => (
                         <TouchableOpacity onPress={() => formRef.current?.submit()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <MaterialIcons name="check" size={26} color={theme.colors.primary} />
@@ -40,7 +34,7 @@ export default function BookEditorScreen() {
             <SafeAreaView style={styles.container} edges={['bottom']}>
                 <Stack.Screen
                     options={{
-                    title: mode === 'edit' ? 'Edit Book' : 'Add Book',
+                        title: mode === 'edit' ? 'Edit Book' : 'Add Book',
                     }}
                 />
 

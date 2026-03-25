@@ -160,15 +160,6 @@ export default function BookDetailScreen() {
                 options={{
                     headerTitle: 'Book Details',
                     headerBackButtonDisplayMode: 'minimal',
-                    // headerLeft: () => (
-                    //     <TouchableOpacity
-                    //         onPress={() => router.back()}
-                    //         style={styles.headerButton}
-                    //     >
-                    //         <MaterialIcons name="arrow-back-ios" size={22} color={theme.colors.primary} />
-                    //         <Text style={[styles.headerButtonText, { color: theme.colors.primary }]}>Back</Text>
-                    //     </TouchableOpacity>
-                    // ),
                     headerRight: () => (
                         <TouchableOpacity
                             onPress={() => {}}
