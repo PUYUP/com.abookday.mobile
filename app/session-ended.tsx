@@ -171,7 +171,7 @@ export default function SessionEndedScreen() {
     // dispatch({ type: 'reading/saveSession', payload });
 
     dispatch({ type: "reading/stopReading" });
-    router.back();
+    router.push(`/sessions/5678/summary`);
   });
 
   // ---------------------------------------------------------------------------

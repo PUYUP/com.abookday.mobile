@@ -2,8 +2,12 @@ import { BookData, StartSessionPayload, TimerLog } from '@/state/reading/reading
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import { Button, useTheme } from 'react-native-paper';
+import { Controller, useForm } from 'react-hook-form';
+import { Animated, Easing, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardEvents, useKeyboardHandler } from 'react-native-keyboard-controller';
+import { Button, Dialog, Portal, useTheme } from 'react-native-paper';
+import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 
 // ---------------------------------------------------------------------------
@@ -32,11 +36,36 @@ const formatTime = (totalSeconds: number): string => {
 
 const nowISO = () => new Date().toISOString();
 
+// Custom hook to adjust for keyboard height using reanimated
+function useKeyboardOffset(insets: ReturnType<typeof useSafeAreaInsets>) {
+  const height = useSharedValue(0);
+
+  useKeyboardHandler(
+    {
+      onMove: (event) => {
+        "worklet";
+        height.value = withTiming(Math.max(event.height, insets.bottom), { duration: 0 });
+      },
+    },
+    []
+  );
+
+  const animatedStyle = useAnimatedStyle(
+    () => ({ marginBottom: Math.abs(height.value) }),
+    [height, insets.bottom]
+  );
+
+  console.log('Keyboard offset animated style:', animatedStyle);
+
+  return animatedStyle;
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function ReadingPlayer() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -44,6 +73,10 @@ export default function ReadingPlayer() {
 
   const [status, setStatus] = useState<Status>('stopped');
   const [seconds, setSeconds] = useState(0);
+  const [confirmEndReading, setConfirmEndReading] = useState(false);
+
+  const dialogInputRef = useRef<TextInput | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // BUG FIX: Use a ref for the action log so mutations are immediately
   // visible to handlers without waiting for a re-render cycle.
@@ -86,6 +119,61 @@ export default function ReadingPlayer() {
     actionLogRef.current = [];
     forceUpdate((n) => n + 1);
   }, []);
+
+  useEffect(() => {
+    if (!confirmEndReading) return;
+    
+    const show = KeyboardEvents.addListener("keyboardWillShow", (e) => {
+      setKeyboardHeight(e.height - insets.bottom);
+    });
+
+    const hide = KeyboardEvents.addListener("keyboardDidHide", () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [confirmEndReading]);
+
+  useEffect(() => {
+    if (!confirmEndReading) return;
+    const timer = setTimeout(() => dialogInputRef.current?.focus(), 120);
+    return () => clearTimeout(timer);
+  }, [confirmEndReading]);
+
+  // -------------------------------------------------------------------------
+  // Confirmation form
+  // -------------------------------------------------------------------------
+  const { control, handleSubmit, reset, formState: { errors, isValid } } = useForm({
+    defaultValues: {
+      pageNumber: '',
+    },
+    mode: 'onChange',
+  });
+
+  const showDialog = () => setConfirmEndReading(true);
+  const endRead = handleSubmit((data) => {
+    handleStop();
+    setConfirmEndReading(false);
+    reset();
+
+    // navigate to summary form with session data
+    router.push({
+      pathname: `/sessions/[sessionId]/summary`, // TODO: replace with actual session ID
+      params: {
+        sessionId: 124,
+        lastPage: data.pageNumber,
+      },
+    });
+  });
+
+  const keepRead = () => {
+    reset();
+    handleRead();
+    setConfirmEndReading(false);
+  };
 
   // -------------------------------------------------------------------------
   // Timer
@@ -169,7 +257,7 @@ export default function ReadingPlayer() {
     const payload: StartSessionPayload = {
       bookId: BOOK_DATA.id,
       bookTitle: BOOK_DATA.title,
-      startPage: '1',
+      startPage: 1,
       timer: [...actionLogRef.current],
     };
 
@@ -191,7 +279,8 @@ export default function ReadingPlayer() {
       }
 
       if (action === 'stopped') {
-        router.push('/session-ended');
+        // Alert to insert last page number
+        showDialog();
       }
     },
     [status, appendLog, dispatch, router]
@@ -320,6 +409,50 @@ export default function ReadingPlayer() {
           </View>
         </View>
       </View>
+
+      <Portal>
+        <Dialog 
+          visible={confirmEndReading} 
+          onDismiss={endRead}
+          style={{ borderRadius: 20, marginBottom: keyboardHeight ? (keyboardHeight - insets.bottom) : insets.bottom, marginHorizontal: 20 }}
+        >
+          <Dialog.Title style={{ textAlign: 'center' }}>Enter the last page you read</Dialog.Title>
+          <Dialog.Content>
+            <Controller
+              name="pageNumber"
+              control={control}
+              rules={{
+                required: 'This field is required',
+                pattern: { value: /^\d+$/, message: 'Must be a valid number' },
+                min: { value: 1, message: 'Must be at least page 1' },
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  placeholder="e.g. 120"
+                  style={{ 
+                    borderBottomWidth: 1, 
+                    borderBottomColor: '#ccc', 
+                    marginTop: 8, 
+                    paddingVertical: 16,
+                    fontSize: 20,
+                    fontWeight: '600',
+                    textAlign: 'center',
+                  }}
+                  ref={dialogInputRef}
+                  keyboardType="number-pad"
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  value={value ? value : ''}
+                />
+              )}
+            />
+          </Dialog.Content>
+          <Dialog.Actions style={{ justifyContent: 'center', gap: 20, paddingBottom: 24 }}>
+            <Button onPress={keepRead}>Keep Reading</Button>
+            <Button onPress={endRead} disabled={!isValid}>Save Progress</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </React.Fragment>
   );
 }
