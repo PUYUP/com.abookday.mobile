@@ -24,7 +24,7 @@ export default function BookEditorScreen() {
                     headerStyle: { backgroundColor: '#fff' },
                     headerRight: () => (
                         <TouchableOpacity onPress={() => formRef.current?.submit()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <MaterialIcons name="check" size={26} color={theme.colors.primary} />
+                            <MaterialIcons name="save" size={26} color={theme.colors.primary} />
                             <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '600' }}>Save</Text>
                         </TouchableOpacity>
                     )

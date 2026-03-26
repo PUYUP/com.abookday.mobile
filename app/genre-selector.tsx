@@ -1,4 +1,3 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -105,7 +104,6 @@ export default function GenreSelector() {
                 options={{
                     headerRight: () => (
                         <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <MaterialIcons name="check" size={26} color={theme.colors.primary} />
                             <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '600' }}>Done</Text>
                         </TouchableOpacity>
                     )
