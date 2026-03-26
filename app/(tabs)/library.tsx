@@ -79,7 +79,7 @@ export default function LibraryScreen() {
           headerTitle: 'Library',
           headerShadowVisible: false,
           header: () => (
-            <View style={[styles.header, { paddingTop: insets.top }]}>
+            <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
               {/* Back button */}
               {/* <TouchableOpacity onPress={() => router.back()}>
                 <MaterialIcons name="arrow-back-ios" size={22} color={theme.colors.primary} />
@@ -139,11 +139,11 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     backgroundColor: '#fff',
-    height: 36,
-    borderRadius: 20,
+    borderRadius: 30,
     borderWidth: 1,
     borderColor: '#ddd',
     paddingHorizontal: 12,
+    paddingVertical: 8,
     fontSize: 14,
   },
   actionsContainer: {

@@ -4,6 +4,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SessionData } from '@/state/reading/reading-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { differenceInMinutes, format } from 'date-fns';
+import { useRouter } from 'expo-router';
 import { useTheme } from 'react-native-paper';
 
 type Props = {
@@ -26,13 +27,25 @@ function formatDuration(startTime?: string, endTime?: string): string | null {
 }
 
 export default function SessionItem({ session }: Props) {
+    const router = useRouter();
     const theme = useTheme();
     const pagesRead = (session.lastPage ?? 0) - session.startPage;
     const duration = formatDuration(session.startTime, session.endTime);
     const moodEmoji = session.mood ? MOOD_EMOJI[session.mood] : null;
 
     return (
-        <View style={styles.container}>
+        <TouchableOpacity 
+            style={styles.container}
+            onPress={() => {
+                router.push({
+                    pathname: `/sessions/[sessionId]/summary`, // TODO: replace with actual session ID
+                    params: {
+                        sessionId: 124,
+                        lastPage: 13,
+                    },
+                });
+            }}
+        >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 {moodEmoji && (
                     <View style={[styles.mood, !session.note && styles.moodInline]}>
@@ -62,9 +75,7 @@ export default function SessionItem({ session }: Props) {
                     </View>
                 </View>
 
-                <TouchableOpacity style={{ padding: 2 }} onPress={() => { /* TODO: navigate to session details/edit screen */ }}>
-                    <Text style={{ color: theme.colors.primary, fontSize: 14 }}>Edit</Text>
-                </TouchableOpacity>
+                <Text style={{ color: theme.colors.primary, fontSize: 14 }}>Edit</Text>
             </View>
 
             {session.note && (
@@ -72,7 +83,7 @@ export default function SessionItem({ session }: Props) {
                     <Text style={styles.noteText}>{session.note}</Text>
                 </View>
             )}
-        </View>
+        </TouchableOpacity>
     );
 }
 

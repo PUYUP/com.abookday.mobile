@@ -1,13 +1,22 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as NavigationBar from 'expo-navigation-bar';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      // Set the navigation bar style
+      NavigationBar.setButtonStyleAsync('light'); // Light buttons for dark background
+    }
+}, []);
 
   return (
     <Tabs
@@ -17,6 +26,7 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
         tabBarStyle: {
           backgroundColor: '#f5f5f5',
+          height: Platform.OS === 'android' ? 102 : 80,
           elevation: 0, // for Android
           shadowOpacity: 0, // for iOS
           borderTopWidth: 0, // Also useful for some cases
