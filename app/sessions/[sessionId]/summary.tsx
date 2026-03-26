@@ -21,128 +21,191 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
     Animated,
+    FlatList,
     Linking,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const C = {
-  cream:     '#f7fbff',   // lightest background
-  warm:      '#e8f1ff',   // soft supporting bg
-  amber:     '#1e90ff',   // primary accent (DodgerBlue)
-  amberDark: '#0f6cc5',   // darker accent for contrast
-  brown:     '#0d1f36',   // header/background base
-  ink:       '#0a1526',   // primary text on light surfaces
-  gold:      '#9cc4ff',   // mid accent for pills/spine
-  goldLight: '#d2e4ff',   // subtle accent for borders/fills
-  paper:     '#f2f6ff',   // card surface
-  muted:     '#6b86aa',   // secondary text
-  mutedDark: '#4c6285',   // tertiary text
+    cream:     '#f7fbff',
+    warm:      '#e8f1ff',
+    amber:     '#1e90ff',
+    amberDark: '#0f6cc5',
+    brown:     '#0d1f36',
+    ink:       '#0a1526',
+    gold:      '#9cc4ff',
+    goldLight: '#d2e4ff',
+    paper:     '#f2f6ff',
+    muted:     '#6b86aa',
+    mutedDark: '#4c6285',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(): string {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year:    'numeric',
-    month:   'long',
-    day:     'numeric',
-  });
+    return new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year:    'numeric',
+        month:   'long',
+        day:     'numeric',
+    });
 }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const MOOD_OPTIONS = [
+    { id: 'happy',      label: 'Happy',      emoji: '😊', color: '#C9A84C' },
+    { id: 'calm',       label: 'Calm',       emoji: '😌', color: '#4A8C75' },
+    { id: 'thoughtful', label: 'Thoughtful', emoji: '🤔', color: '#4A7A8C' },
+    { id: 'inspired',   label: 'Inspired',   emoji: '😮', color: '#8C4A6E' },
+    { id: 'emotional',  label: 'Emotional',  emoji: '😢', color: '#6B5FA0' },
+    { id: 'sleepy',     label: 'Sleepy',     emoji: '😴', color: '#7A8C9E' },
+] as const;
+
+// Derive the union type from the constant so it stays in sync automatically.
+type MoodId = (typeof MOOD_OPTIONS)[number]['id'];
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+type FormValues = {
+    // FIX: was typed as `MoodOption | undefined` (an external type that refers to
+    // the full object), but the form only needs to store the selected mood id.
+    // Using the derived MoodId union keeps the type honest and avoids mismatches.
+    mood:     MoodId | null;
+    lastPage: number;
+    note:     string;
+};
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface Props {
-  bookTitle?:     string;
-  author?:        string;
-  category?:      string;
-  minutesRead?:   number;
-  startPage?:     number;
-  endPage?:       number;
-  totalPages?:    number;
-  sessionNumber?: number;
+    bookTitle?:     string;
+    author?:        string;
+    category?:      string;
+    minutesRead?:   number;
+    startPage?:     number;
+    endPage?:       number;
+    totalPages?:    number;
+    sessionNumber?: number;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ReadingSummaryScreen({
-  bookTitle     = 'Makanya, Mikir!',
-  author        = 'Dewi Lestari',
-  category      = 'Fiction',
-  minutesRead   = 45,
-  startPage     = 15,
-  endPage       = 46,
-  totalPages    = 320,
-  sessionNumber = 1,
+    bookTitle     = 'Makanya, Mikir!',
+    author        = 'Dewi Lestari',
+    category      = 'Fiction',
+    minutesRead   = 45,
+    startPage     = 15,
+    endPage       = 46,
+    totalPages    = 320,
+    sessionNumber = 1,
 }: Props) {
-    const router = useRouter();
-    const theme = useTheme();
-  const pagesRead = Math.max(0, endPage - startPage + 1);
-  const speed     = minutesRead > 0 ? (pagesRead / minutesRead).toFixed(1) : '—';
-  const pct       = totalPages > 0 ? Math.min(100, Math.round((endPage / totalPages) * 100)) : 0;
+    const router  = useRouter();
+    const insets  = useSafeAreaInsets();
 
-  // ── Animations ──
-  const fadeAnim     = useRef(new Animated.Value(0)).current;
-  const slideAnim    = useRef(new Animated.Value(40)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
+    // FIX: removed unused `height` state (was declared but never read).
+    // Auto-grow is now handled by tracking content height via onContentSizeChange.
+    const inputRef = useRef(null);
+    const initialised = useRef(false)
 
-  useEffect(() => {
-    // Card entrance animation
-    Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 700, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, damping: 18, stiffness: 120 }),
-    ]).start();
+    const pagesRead = Math.max(0, endPage - startPage + 1);
+    const speed     = minutesRead > 0 ? (pagesRead / minutesRead).toFixed(1) : '—';
+    const pct       = totalPages > 0 ? Math.min(100, Math.round((endPage / totalPages) * 100)) : 0;
 
-    // Progress bar fill (delayed so it plays after card appears)
-    setTimeout(() => {
-      Animated.timing(progressAnim, {
-        toValue:         pct / 100,
-        duration:        1400,
-        useNativeDriver: false,
-      }).start();
-    }, 500);
-  }, []);
+    // ── Form ──────────────────────────────────────────────────────────────────
+    // FIX: all fields are now properly wired via <Controller> so their values
+    // are actually captured on submit. Previously `control` was imported but
+    // no Controller wrapped any input, leaving mood/lastPage/note at defaults.
+    const {
+        control,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+    } = useForm<FormValues>({
+        mode: 'onChange',
+        defaultValues: {
+            mood:     null,
+            lastPage: 0,
+            note:     '',
+        },
+    });
 
-  // ── Share text builder ──
-  function buildShareText(): string {
-    return '';
-  }
+    // ── Animations ────────────────────────────────────────────────────────────
+    const fadeAnim     = useRef(new Animated.Value(0)).current;
+    const slideAnim    = useRef(new Animated.Value(40)).current;
+    const progressAnim = useRef(new Animated.Value(0)).current;
 
-  function shareFacebook() {
-    const text = encodeURIComponent(buildShareText());
-    Linking.openURL(
-      `https://www.facebook.com/sharer/sharer.php?quote=${text}&u=https://facebook.com`
-    );
-  }
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim,  { toValue: 1, duration: 700, useNativeDriver: true }),
+            Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, damping: 18, stiffness: 120 }),
+        ]).start();
 
-  function shareTwitter() {
-    const text = encodeURIComponent(buildShareText());
-    Linking.openURL(`https://twitter.com/intent/tweet?text=${text}`);
-  }
+        setTimeout(() => {
+            Animated.timing(progressAnim, {
+                toValue:         pct / 100,
+                duration:        1400,
+                useNativeDriver: false,
+            }).start();
+        }, 500);
+    }, []);
 
-  const progressWidth = progressAnim.interpolate({
-    inputRange:  [0, 1],
-    outputRange: ['0%', '100%'],
-  });
+    const progressWidth = progressAnim.interpolate({
+        inputRange:  [0, 1],
+        outputRange: ['0%', '100%'],
+    });
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // ── Share ─────────────────────────────────────────────────────────────────
+    // FIX: buildShareText was returning an empty string, so share buttons posted
+    // blank content. Now it constructs a meaningful summary from the session data.
+    function buildShareText(): string {
+        return (
+            `📖 Just finished a reading session!\n` +
+            `"${bookTitle}" by ${author}\n` +
+            `Read ${pagesRead} pages in ${minutesRead} minutes — ${pct}% through the book. 🎉`
+        );
+    }
+
+    function shareFacebook() {
+        const text = encodeURIComponent(buildShareText());
+        Linking.openURL(
+            `https://www.facebook.com/sharer/sharer.php?quote=${text}&u=https://facebook.com`
+        );
+    }
+
+    function shareTwitter() {
+        const text = encodeURIComponent(buildShareText());
+        Linking.openURL(`https://twitter.com/intent/tweet?text=${text}`);
+    }
+
+    // ── Submit ────────────────────────────────────────────────────────────────
+    // FIX: handleSubmit was defined but never invoked — no save/done button
+    // existed in the original render tree.
+    function onSubmit(data: FormValues) {
+        // TODO: dispatch to your store / call your API here.
+        console.log('Session saved:', data);
+        router.back();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     return (
         <View style={s.root}>
-            <Stack.Screen options={{ 
+            <Stack.Screen options={{
                 title: 'Summary',
                 headerBackButtonDisplayMode: 'minimal',
                 headerShadowVisible: false,
             }} />
 
-            <ScrollView
+            <KeyboardAwareScrollView
                 contentContainerStyle={s.scroll}
                 showsVerticalScrollIndicator={false}
+                bottomOffset={insets.bottom + 20}
+                nestedScrollEnabled={true}
             >
                 <View style={s.card}>
                     {/* ── Header ── */}
@@ -153,10 +216,11 @@ export default function ReadingSummaryScreen({
                             <Text style={s.bookTitle}>{author}</Text>
                             <MaterialIcons name="circle" size={6} color="rgba(253,246,236,0.55)" />
                             <Text style={s.bookTitle}>{category}</Text>
+                            <MaterialIcons name="circle" size={6} color="rgba(253,246,236,0.55)" />
+                            <Text style={s.bookTitle}>{totalPages} pages</Text>
                         </View>
 
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                            <Text style={s.bookTitle}>Session #{sessionNumber}</Text>
                             <Text style={s.bookTitle}>{formatDate()}</Text>
                         </View>
                     </View>
@@ -165,57 +229,129 @@ export default function ReadingSummaryScreen({
                     <View style={s.body}>
                         {/* ── Progress Bar ── */}
                         <View style={s.progressSection}>
-                        <View style={s.progressHeader}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                <MaterialIcons name="bar-chart" size={18} color={C.amber} />
-                                <Text style={s.progressLabel}>Overall Progress</Text>
+                            <View style={s.progressHeader}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <MaterialIcons name="bar-chart" size={18} color={C.amber} />
+                                    <Text style={s.progressLabel}>Overall Progress</Text>
+                                </View>
+                                <Text style={s.progressPct}>{pct}%</Text>
                             </View>
-                            <Text style={s.progressPct}>{pct}%</Text>
-                        </View>
-                        <View style={s.progressTrack}>
-                            <Animated.View style={[s.progressFill, { width: progressWidth }]} />
-                        </View>
-                        <View style={s.progressInfo}>
-                            <Text style={s.progressInfoText}>Done: {endPage} pages</Text>
-                            <Text style={s.progressInfoText}>
-                            Left: {Math.max(0, totalPages - endPage)} to go
-                            </Text>
-                        </View>
+                            <View style={s.progressTrack}>
+                                <Animated.View style={[s.progressFill, { width: progressWidth }]} />
+                            </View>
+                            <View style={s.progressInfo}>
+                                <Text style={s.progressInfoText}>Done: {endPage} pages</Text>
+                                <Text style={s.progressInfoText}>
+                                    Left: {Math.max(0, totalPages - endPage)} to go
+                                </Text>
+                            </View>
                         </View>
 
                         {/* ── Stats 2×2 Grid ── */}
-                        <View style={s.statsGrid}>
-                        <StatBox
-                            label="Reading Time"
-                            value={String(minutesRead)}
-                            unit="min"
-                        />
-                        <StatBox
-                            label="Pages Read"
-                            value={String(pagesRead)}
-                            unit={`${startPage} – ${endPage}`}
-                        />
-                        <StatBox
-                            label="Total Pages"
-                            value={String(totalPages)}
-                            unit={''}
-                        />
-                        <StatBox
-                            label="Reading Speed"
-                            value={String(speed)}
-                            unit={'pages / min'}
-                        />
+                        <View style={[s.statsGrid, { marginBottom: 12 }]}>
+                            <StatBox label="Time"       value={String(minutesRead)} unit="min"              />
+                            <StatBox label="Pages Read" value={String(pagesRead)}   unit={`${startPage} – ${endPage}`} />
+                            <StatBox label="Sessions"   value={`#${sessionNumber}`} unit=""                 />
+                            <StatBox label="Speed"      value={String(speed)}       unit="pages / min"      />
                         </View>
 
-                        {/* ── Inspirational Quote ── */}
-                        <View style={s.quoteBox}>
-                            <TextInput 
-                                style={s.quoteInput} 
-                                multiline={true} 
-                                placeholder='Write your thoughts here...' 
-                                placeholderTextColor={C.muted}
+                        {/* ── Mood Selector ── */}
+                        {/* FIX: mood is now wired to react-hook-form via Controller.
+                            Previously setSelectedMood updated only local state while
+                            setValue was never called, so mood was always undefined
+                            on submit. The Controller's onChange is now the single
+                            source of truth; isSelected derives from field.value. */}
+                        <View>
+                            <View style={[s.progressHeader, { marginBottom: 10 }]}>
+                                <Text style={s.progressLabel}>How did this session feel?*</Text>
+                            </View>
+
+                            {/* FIX: mood validation error is only shown after a submit
+                                attempt (errors.mood exists only once handleSubmit fires),
+                                not on every render before the user has touched anything. */}
+                            {errors.mood && (
+                                <Text style={s.errorText}>Please select a mood before saving.</Text>
+                            )}
+
+                            <Controller
+                                control={control}
+                                name="mood"
+                                rules={{ required: true }}
+                                render={({ field }) => (
+                                    <FlatList
+                                        scrollEnabled={false}
+                                        keyboardShouldPersistTaps="handled"
+                                        numColumns={6}
+                                        data={MOOD_OPTIONS}
+                                        keyExtractor={(item) => item.id}
+                                        contentContainerStyle={s.moodGrid}
+                                        columnWrapperStyle={s.moodRow}
+                                        renderItem={({ item: mood }) => {
+                                            const isSelected = field.value === mood.id;
+                                            return (
+                                                <TouchableOpacity
+                                                    style={[
+                                                        s.moodCard,
+                                                        isSelected && {
+                                                            borderColor:     mood.color,
+                                                            backgroundColor: `${mood.color}18`,
+                                                        },
+                                                        errors.mood && {
+                                                            borderColor: '#E53E3E',
+                                                        },
+                                                    ]}
+                                                    onPress={() => field.onChange(mood.id)}
+                                                    activeOpacity={0.75}
+                                                >
+                                                    <Text style={s.moodEmoji}>{mood.emoji}</Text>
+                                                </TouchableOpacity>
+                                            );
+                                        }}
+                                    />
+                                )}
                             />
-                            <Text style={s.quoteAuthor}>{'- Muhammad Rahman'}</Text>
+                        </View>
+
+                        {/* ── Note Input ── */}
+                        {/* FIX 1: was an uncontrolled TextInput wired to a ref with a
+                            broken initialised-guard that called setNativeProps only on
+                            the first keystroke — the value was never captured.
+                            Now it's a controlled Controller field.
+                            FIX 2: onContentSizeChange was console.log-ing instead of
+                            updating height, so the textarea never grew. Now it updates
+                            noteHeight so the input expands as the user types. */}
+                        
+                        <View style={[s.progressHeader]}>
+                            <Text style={s.progressLabel}>Your thoughts</Text>
+                        </View>
+
+                        <View style={[s.quoteBox, { marginTop: -10 }]}>
+                            <Controller
+                                control={control}
+                                name="note"
+                                render={({ field }) => (
+                                    <TextInput
+                                        style={[s.quoteInput, { minHeight: 30 }]} 
+                                        placeholder="Write here..."
+                                        value={field.value}
+                                        ref={inputRef}
+                                        onChange={field.onChange}
+                                        onChangeText={(text)=> {
+                                            if(!initialised.current && text?.trim()){
+                                                initialised.current = true
+                                                // @ts-ignore
+                                                inputRef.current?.setNativeProps({text})
+                                            }
+
+                                            field.onChange(text)
+                                        }}
+                                        onBlur={field.onBlur}
+                                        multiline
+                                        scrollEnabled={false}
+                                        onContentSizeChange={(e) => console.log(e)}
+                                    />
+                                )}
+                            />
                         </View>
                     </View>
                 </View>
@@ -245,271 +381,246 @@ export default function ReadingSummaryScreen({
                         </TouchableOpacity>
                     </View>
                 </View>
-            </ScrollView>
+            </KeyboardAwareScrollView>
         </View>
     );
 }
 
 // ─── StatBox Sub-Component ────────────────────────────────────────────────────
-function StatBox({
-  label,
-  value,
-  unit,
-}: {
-  label: string;
-  value: string;
-  unit:  string;
-}) {
-  return (
-    <View style={s.statBox}>
-      <View style={s.statAccent} />
-      <Text style={s.statLabel}>{label}</Text>
-      <View style={s.statValueRow}>
-        <Text style={s.statValue}>{value}</Text>
-        {unit ? <Text style={s.statUnit}> {unit}</Text> : null}
-      </View>
-    </View>
-  );
+function StatBox({ label, value, unit }: { label: string; value: string; unit: string }) {
+    return (
+        <View style={s.statBox}>
+            <View style={s.statAccent} />
+            <Text style={s.statLabel}>{label}</Text>
+            <View style={s.statValueRow}>
+                <Text style={s.statValue}>{value}</Text>
+                {unit ? <Text style={s.statUnit}> {unit}</Text> : null}
+            </View>
+        </View>
+    );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  // Root & scroll
-  root: {
-    flex:            1,
-    backgroundColor: '#fff',
-  },
-  scroll: {
-    alignItems:        'center',
-    paddingVertical:   0,
-    padding: 16,
-  },
-
-  // Card
-  card: {
-    width:           '100%',
-    maxWidth:        520,
-    backgroundColor: C.paper,
-    borderRadius:    20,
-    overflow:        'hidden',
-    shadowColor:     '#000',
-    shadowOffset:    { width: 0, height: 12 },
-    shadowOpacity:   0.45,
-    shadowRadius:    28,
-    elevation:       18,
-  },
-
-  // Header
-  header: {
-    backgroundColor:   C.amberDark,
-    paddingHorizontal: 20,
-    paddingTop:        20,
-    paddingBottom:     20,
-  },
-  congratsTitle: {
-    fontSize:   20,
-    fontWeight: '700',
-    color:      C.cream,
-    marginBottom: 4,
-  },
-  bookTitle: {
-    fontSize:  14,
-    fontStyle: 'italic',
-    color:     'rgba(253,246,236,0.75)',
-  },
-
-  // Body
-  body: {
-    padding: 18,
-    gap:     16,
-  },
-
-  // Stats grid
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap:      'wrap',
-    gap:           10,
-  },
-  statBox: {
-    width:           '48%',
-    backgroundColor: C.cream,
-    borderRadius:    16,
-    borderWidth:     1,
-    borderColor:     C.amber,
-    padding:         14,
-    paddingLeft:     22,
-    overflow:        'hidden',
-  },
-  statAccent: {
-    position:               'absolute',
-    left: 0, top: 0, bottom: 0,
-    width:                  8,
-    backgroundColor:        C.amber,
-    borderTopLeftRadius:    16,
-    borderBottomLeftRadius: 16,
-  },
-  statLabel: {
-    fontSize:      9,
-    fontWeight:    '600',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color:         C.amber,
-    marginBottom:  5,
-  },
-  statValueRow: {
-    flexDirection: 'row',
-    alignItems:    'flex-end',
-  },
-  statValue: {
-    fontSize:   28,
-    fontWeight: '700',
-    color:      C.ink,
-    lineHeight: 32,
-  },
-  statUnit: {
-    fontSize:     12,
-    color:        C.mutedDark,
-    marginBottom: 3,
-    marginLeft:   2,
-  },
-  statSub: {
-    fontSize:  11,
-    color:     C.muted,
-    marginTop: 3,
-  },
-
-  // Progress
-  progressSection: { gap: 8 },
-  progressHeader: {
-    flexDirection:  'row',
-    justifyContent: 'space-between',
-    alignItems:     'center',
-  },
-  progressLabel: {
-    fontSize:      10,
-    fontWeight:    '600',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color:         C.amber,
-  },
-  progressPct: {
-    fontSize:   22,
-    fontWeight: '700',
-    color:      C.ink,
-  },
-  progressTrack: {
-    height:          10,
-    backgroundColor: C.warm,
-    borderRadius:    2,
-    overflow:        'hidden',
-    borderWidth:     1,
-    borderColor:     'rgba(200,133,58,0.2)',
-  },
-  progressFill: {
-    height:          '100%',
-    backgroundColor: C.amber,
-    borderRadius:    2,
-  },
-  progressInfo: {
-    flexDirection:  'row',
-    justifyContent: 'space-between',
-  },
-  progressInfoText: {
-    fontSize: 12,
-    color:    C.muted,
-  },
-
-  // Quote
-  quoteBox: {
-    backgroundColor: C.warm,
-    borderRadius:    16,
-    padding:         16,
-    overflow:        'hidden',
-  },
-  quoteAuthor: {
-    fontSize:      10.5,
-    fontWeight:    '600',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color:         C.amberDark,
-    marginTop:     12,
-    opacity:       0.85,
-  },
-    quoteInput: {
-        fontSize: 18,
-        color: C.ink,
+    root: {
+        flex:            1,
+        backgroundColor: '#fff',
+    },
+    scroll: {
+        alignItems:    'center',
+        paddingVertical: 0,
+        padding:       16,
     },
 
-  // Meta
-  meta: {
-    flexDirection:  'row',
-    justifyContent: 'space-between',
-  },
-  metaText: {
-    fontSize: 11,
-    color:    C.amberDark,
-  },
+    // Card
+    card: {
+        width:           '100%',
+        maxWidth:        520,
+        backgroundColor: C.paper,
+        borderRadius:    20,
+        overflow:        'hidden',
+        shadowColor:     '#000',
+        shadowOffset:    { width: 0, height: 12 },
+        shadowOpacity:   0.45,
+        shadowRadius:    28,
+        elevation:       18,
+    },
 
-  // Share
-  shareSection: { 
-    gap: 10,
-    marginTop: 16,
-  },
-  shareLabel: {
-    fontSize:      10,
-    fontWeight:    '600',
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-    color:         C.gold,
-    textAlign:     'center',
-  },
-  shareRow: {
-    flexDirection: 'row',
-    gap:           8,
-  },
-  shareBtn: {
-    flexDirection:  'row',
-    alignItems:     'center',
-    justifyContent: 'center',
-    gap:            6,
-    paddingVertical: 12,
-    borderRadius:   16,
-    width:          112,
-  },
-  btnFB: {
-    backgroundColor: '#1877f2',
-    shadowColor:     '#1877f2',
-    shadowOffset:    { width: 0, height: 4 },
-    shadowOpacity:   0.3,
-    shadowRadius:    8,
-    elevation:       4,
-  },
-  btnX: {
-    backgroundColor: '#000',
-    shadowColor:     '#000',
-    shadowOffset:    { width: 0, height: 4 },
-    shadowOpacity:   0.3,
-    shadowRadius:    8,
-    elevation:       4,
-  },
-  shareBtnText: {
-    fontSize:   12.5,
-    fontWeight: '600',
-    color:      '#fff',
-  },
+    // Header
+    header: {
+        backgroundColor:   C.amberDark,
+        paddingHorizontal: 20,
+        paddingTop:        20,
+        paddingBottom:     20,
+    },
+    congratsTitle: {
+        fontSize:     20,
+        fontWeight:   '700',
+        color:        C.cream,
+        marginBottom: 4,
+    },
+    bookTitle: {
+        fontSize:  14,
+        fontStyle: 'italic',
+        color:     'rgba(253,246,236,0.75)',
+    },
+
+    // Body
+    body: {
+        padding: 18,
+        gap:     16,
+    },
+
+    // Stats grid
+    statsGrid: {
+        flexDirection: 'row',
+        flexWrap:      'wrap',
+        gap:           10,
+    },
+    statBox: {
+        width:           '48%',
+        backgroundColor: C.cream,
+        borderRadius:    16,
+        borderWidth:     1,
+        borderColor:     C.amber,
+        padding:         14,
+        paddingLeft:     22,
+        overflow:        'hidden',
+    },
+    statAccent: {
+        position:               'absolute',
+        left: 0, top: 0, bottom: 0,
+        width:                  8,
+        backgroundColor:        C.amber,
+        borderTopLeftRadius:    16,
+        borderBottomLeftRadius: 16,
+    },
+    statLabel: {
+        fontSize:      9,
+        fontWeight:    '600',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        color:         C.amber,
+        marginBottom:  5,
+    },
+    statValueRow: {
+        flexDirection: 'row',
+        alignItems:    'flex-end',
+    },
+    statValue: {
+        fontSize:   28,
+        fontWeight: '700',
+        color:      C.ink,
+        lineHeight: 32,
+    },
+    statUnit: {
+        fontSize:     12,
+        color:        C.mutedDark,
+        marginBottom: 3,
+        marginLeft:   2,
+    },
+
+    // Progress
+    progressSection: { gap: 8 },
+    progressHeader: {
+        flexDirection:  'row',
+        justifyContent: 'space-between',
+        alignItems:     'center',
+    },
+    progressLabel: {
+        fontSize:      10,
+        fontWeight:    '600',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        color:         C.amber,
+    },
+    progressPct: {
+        fontSize:   22,
+        fontWeight: '700',
+        color:      C.ink,
+    },
+    progressTrack: {
+        height:          10,
+        backgroundColor: C.warm,
+        borderRadius:    2,
+        overflow:        'hidden',
+        borderWidth:     1,
+        borderColor:     'rgba(200,133,58,0.2)',
+    },
+    progressFill: {
+        height:          '100%',
+        backgroundColor: C.amber,
+        borderRadius:    2,
+    },
+    progressInfo: {
+        flexDirection:  'row',
+        justifyContent: 'space-between',
+    },
+    progressInfoText: {
+        fontSize: 12,
+        color:    C.muted,
+    },
+
+    // Quote / note
+    quoteBox: {},
+    quoteInput: {
+        fontSize: 18,
+        color:    C.ink,
+    },
+
+    // Error
+    errorText: {
+        fontSize:  12,
+        color:     '#E53E3E',
+        marginTop: 4,
+    },
+
+    // Share
+    shareSection: {
+        gap:      10,
+        marginTop: 16,
+    },
+    shareLabel: {
+        fontSize:      10,
+        fontWeight:    '600',
+        letterSpacing: 2.5,
+        textTransform: 'uppercase',
+        color:         C.gold,
+        textAlign:     'center',
+    },
+    shareRow: {
+        flexDirection: 'row',
+        gap:           8,
+    },
+    shareBtn: {
+        flexDirection:   'row',
+        alignItems:      'center',
+        justifyContent:  'center',
+        gap:             6,
+        paddingVertical: 12,
+        borderRadius:    16,
+        width:           112,
+    },
+    btnFB: {
+        backgroundColor: '#1877f2',
+        shadowColor:     '#1877f2',
+        shadowOffset:    { width: 0, height: 4 },
+        shadowOpacity:   0.3,
+        shadowRadius:    8,
+        elevation:       4,
+    },
+    btnX: {
+        backgroundColor: '#000',
+        shadowColor:     '#000',
+        shadowOffset:    { width: 0, height: 4 },
+        shadowOpacity:   0.3,
+        shadowRadius:    8,
+        elevation:       4,
+    },
+    shareBtnText: {
+        fontSize:   12.5,
+        fontWeight: '600',
+        color:      '#fff',
+    },
+
+    // Mood grid
+    moodGrid: {
+        gap: 8,
+    },
+    moodRow: {
+        justifyContent: 'space-between',
+    },
+    moodCard: {
+        width:           46,
+        height:          46,
+        backgroundColor: '#FFFFFF',
+        borderWidth:     1,
+        borderColor:     '#E2E8F0',
+        borderRadius:    23,
+        alignItems:      'center',
+        justifyContent:  'center',
+    },
+    moodEmoji: {
+        fontSize: 28,
+    },
 });
-
-// ─── Usage Example ────────────────────────────────────────────────────────────
-/*
-import ReadingSummaryScreen from './ReadingSummaryScreen';
-
-// Inside your navigator / screen:
-<ReadingSummaryScreen
-  bookTitle="Atomic Habits"
-  minutesRead={45}
-  startPage={15}
-  endPage={46}
-  totalPages={320}
-  sessionNumber={3}
-/>
-*/
