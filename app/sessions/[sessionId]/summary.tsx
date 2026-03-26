@@ -20,12 +20,13 @@
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import * as Sharing from 'expo-sharing';
+import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
     Animated,
     FlatList,
-    Linking,
+    Platform,
     StyleSheet,
     Text,
     TextInput,
@@ -34,6 +35,7 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ViewShot from "react-native-view-shot";
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const C = {
@@ -109,14 +111,23 @@ export default function ReadingSummaryScreen({
     const router  = useRouter();
     const insets  = useSafeAreaInsets();
 
+    // States
+    const [isSharing, setIsSharing] = useState<boolean>(false);
+
     // FIX: removed unused `height` state (was declared but never read).
     // Auto-grow is now handled by tracking content height via onContentSizeChange.
     const inputRef = useRef(null);
-    const initialised = useRef(false)
+    const initialised = useRef(false);
+    const shotRef = useRef(null);
 
     const pagesRead = Math.max(0, endPage - startPage + 1);
     const speed     = minutesRead > 0 ? (pagesRead / minutesRead).toFixed(1) : '—';
     const pct       = totalPages > 0 ? Math.min(100, Math.round((endPage / totalPages) * 100)) : 0;
+
+    // -- Sharing ---
+    const options: Sharing.SharingOptions = {
+        mimeType: 'image/jpeg',
+    }
 
     // ── Form ──────────────────────────────────────────────────────────────────
     // FIX: all fields are now properly wired via <Controller> so their values
@@ -126,6 +137,7 @@ export default function ReadingSummaryScreen({
         control,
         handleSubmit,
         formState: { errors, isSubmitting },
+        getValues
     } = useForm<FormValues>({
         mode: 'onChange',
         defaultValues: {
@@ -171,16 +183,15 @@ export default function ReadingSummaryScreen({
         );
     }
 
-    function shareFacebook() {
-        const text = encodeURIComponent(buildShareText());
-        Linking.openURL(
-            `https://www.facebook.com/sharer/sharer.php?quote=${text}&u=https://facebook.com`
-        );
-    }
-
-    function shareTwitter() {
-        const text = encodeURIComponent(buildShareText());
-        Linking.openURL(`https://twitter.com/intent/tweet?text=${text}`);
+    const share = async() => {
+        if (shotRef && shotRef.current) {
+            // @ts-ignore
+            shotRef.current.capture().then(async uri => {
+                setIsSharing(true);
+                await Sharing.shareAsync(`file://${uri}`, options);
+                setIsSharing(false);
+            });
+        }
     }
 
     // ── Submit ────────────────────────────────────────────────────────────────
@@ -207,7 +218,7 @@ export default function ReadingSummaryScreen({
                 bottomOffset={insets.bottom + 20}
                 nestedScrollEnabled={true}
             >
-                <View style={s.card}>
+                <ViewShot style={s.card} ref={shotRef}>
                     {/* ── Header ── */}
                     <View style={s.header}>
                         <Text style={s.congratsTitle}>{bookTitle}</Text>
@@ -263,7 +274,7 @@ export default function ReadingSummaryScreen({
                             source of truth; isSelected derives from field.value. */}
                         <View>
                             <View style={[s.progressHeader, { marginBottom: 10 }]}>
-                                <Text style={s.progressLabel}>How did this session feel?*</Text>
+                                <Text style={s.progressLabel}>How did this session feel?</Text>
                             </View>
 
                             {/* FIX: mood validation error is only shown after a submit
@@ -295,6 +306,7 @@ export default function ReadingSummaryScreen({
                                                         isSelected && {
                                                             borderColor:     mood.color,
                                                             backgroundColor: `${mood.color}18`,
+                                                            borderWidth: 2,
                                                         },
                                                         errors.mood && {
                                                             borderColor: '#E53E3E',
@@ -303,7 +315,11 @@ export default function ReadingSummaryScreen({
                                                     onPress={() => field.onChange(mood.id)}
                                                     activeOpacity={0.75}
                                                 >
-                                                    <Text style={s.moodEmoji}>{mood.emoji}</Text>
+                                                    <Text 
+                                                        style={[s.moodEmoji, Platform.OS == 'android' ? { fontSize: 22, top: -1 } : { fontSize: 26 }]}
+                                                    >
+                                                        {mood.emoji}
+                                                    </Text>
                                                 </TouchableOpacity>
                                             );
                                         }}
@@ -321,63 +337,56 @@ export default function ReadingSummaryScreen({
                             updating height, so the textarea never grew. Now it updates
                             noteHeight so the input expands as the user types. */}
                         
-                        <View style={[s.progressHeader]}>
-                            <Text style={s.progressLabel}>Your thoughts</Text>
-                        </View>
+                        {(!isSharing || getValues('note')) && (
+                            <React.Fragment>
+                                <View style={[s.progressHeader]}>
+                                    <Text style={s.progressLabel}>The Thoughts</Text>
+                                </View>
 
-                        <View style={[s.quoteBox, { marginTop: -10 }]}>
-                            <Controller
-                                control={control}
-                                name="note"
-                                render={({ field }) => (
-                                    <TextInput
-                                        style={[s.quoteInput, { minHeight: 30 }]} 
-                                        placeholder="Write here..."
-                                        value={field.value}
-                                        ref={inputRef}
-                                        onChange={field.onChange}
-                                        onChangeText={(text)=> {
-                                            if(!initialised.current && text?.trim()){
-                                                initialised.current = true
-                                                // @ts-ignore
-                                                inputRef.current?.setNativeProps({text})
-                                            }
+                                <View style={[s.quoteBox, { marginTop: -10 }]}>
+                                    <Controller
+                                        control={control}
+                                        name="note"
+                                        render={({ field }) => (
+                                            <TextInput
+                                                style={[s.quoteInput, { minHeight: 30 }]} 
+                                                placeholder="Write here..."
+                                                value={field.value}
+                                                ref={inputRef}
+                                                onChange={field.onChange}
+                                                onChangeText={(text)=> {
+                                                    if(!initialised.current && text?.trim()){
+                                                        initialised.current = true
+                                                        // @ts-ignore
+                                                        inputRef.current?.setNativeProps({text})
+                                                    }
 
-                                            field.onChange(text)
-                                        }}
-                                        onBlur={field.onBlur}
-                                        multiline
-                                        scrollEnabled={false}
-                                        onContentSizeChange={(e) => console.log(e)}
+                                                    field.onChange(text)
+                                                }}
+                                                onBlur={field.onBlur}
+                                                multiline
+                                                scrollEnabled={false}
+                                            />
+                                        )}
                                     />
-                                )}
-                            />
-                        </View>
+                                </View>
+                            </React.Fragment>
+                        )}
                     </View>
-                </View>
+                </ViewShot>
 
                 {/* ── Share Section ── */}
                 <View style={s.shareSection}>
-                    <Text style={s.shareLabel}>Share Your Achievement</Text>
+                    <Text style={s.shareLabel}>Let Friends Know</Text>
                     <View style={s.shareRow}>
                         <TouchableOpacity
                             style={[s.shareBtn, s.btnFB]}
-                            onPress={shareFacebook}
+                            onPress={share}
                             activeOpacity={0.85}
                             accessibilityLabel="Share on Facebook"
                         >
-                            <MaterialIcons name="facebook" size={18} color="#fff" />
-                            <Text style={s.shareBtnText}>Facebook</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[s.shareBtn, s.btnX]}
-                            onPress={shareTwitter}
-                            activeOpacity={0.85}
-                            accessibilityLabel="Share on X / Twitter"
-                        >
-                            <MaterialIcons name="close" size={18} color="#fff" />
-                            <Text style={s.shareBtnText}>Twitter</Text>
+                            <MaterialIcons name="share" size={18} color="#fff" />
+                            <Text style={s.shareBtnText}>Share</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -408,8 +417,7 @@ const s = StyleSheet.create({
     },
     scroll: {
         alignItems:    'center',
-        paddingVertical: 0,
-        padding:       16,
+        paddingBottom: 16,
     },
 
     // Card
@@ -417,13 +425,8 @@ const s = StyleSheet.create({
         width:           '100%',
         maxWidth:        520,
         backgroundColor: C.paper,
-        borderRadius:    20,
+        borderRadius:    0,
         overflow:        'hidden',
-        shadowColor:     '#000',
-        shadowOffset:    { width: 0, height: 12 },
-        shadowOpacity:   0.45,
-        shadowRadius:    28,
-        elevation:       18,
     },
 
     // Header
@@ -570,6 +573,7 @@ const s = StyleSheet.create({
     },
     shareRow: {
         flexDirection: 'row',
+        justifyContent: 'center',
         gap:           8,
     },
     shareBtn: {
