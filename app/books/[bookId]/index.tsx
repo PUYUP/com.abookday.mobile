@@ -163,7 +163,7 @@ export default function BookDetailScreen() {
                     headerRight: () => (
                         <TouchableOpacity
                             onPress={() => {}}
-                            style={styles.headerButton}
+                            style={[styles.headerButton, { gap: 6 }]}
                         >
                             <MaterialIcons name="edit" size={22} color={theme.colors.primary} />
                             <Text style={[styles.headerButtonText, { color: theme.colors.primary }]}>Edit</Text>

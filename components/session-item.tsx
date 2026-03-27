@@ -46,43 +46,47 @@ export default function SessionItem({ session }: Props) {
                 });
             }}
         >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                {moodEmoji && (
-                    <View style={[styles.mood, !session.note && styles.moodInline]}>
-                        <Text style={styles.moodText}>{moodEmoji}</Text>
+            <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    {moodEmoji && (
+                        <View style={[styles.mood, !session.note && styles.moodInline]}>
+                            <Text style={styles.moodText}>{moodEmoji}</Text>
+                        </View>
+                    )}
+                    
+                    <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            {session.startTime && (
+                                <React.Fragment>
+                                    <Text style={styles.value}>
+                                        {format(new Date(session.startTime), 'PPP')}
+                                    </Text>
+                                    <MaterialIcons name="circle" size={4} color="#718096" />
+                                </React.Fragment>
+                            )}
+
+                            {duration && (
+                                <React.Fragment>
+                                    <Text style={styles.value}>{duration}</Text>
+                                    <MaterialIcons name="circle" size={4} color="#718096" />
+                                </React.Fragment>
+                            )}
+
+                            <Text style={styles.value}>{pagesRead} pages</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {session.note && (
+                    <View style={styles.noteRow}>
+                        <Text style={styles.noteText}>{session.note}</Text>
                     </View>
                 )}
-                
-                <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        {session.startTime && (
-                            <React.Fragment>
-                                <Text style={styles.value}>
-                                    {format(new Date(session.startTime), 'PPP')}
-                                </Text>
-                                <MaterialIcons name="circle" size={4} color="#718096" />
-                            </React.Fragment>
-                        )}
-
-                        {duration && (
-                            <React.Fragment>
-                                <Text style={styles.value}>{duration}</Text>
-                                <MaterialIcons name="circle" size={4} color="#718096" />
-                            </React.Fragment>
-                        )}
-
-                        <Text style={styles.value}>{pagesRead} pages</Text>
-                    </View>
-                </View>
-
-                <Text style={{ color: theme.colors.primary, fontSize: 14 }}>Edit</Text>
             </View>
 
-            {session.note && (
-                <View style={styles.noteRow}>
-                    <Text style={styles.noteText}>{session.note}</Text>
-                </View>
-            )}
+            <View>
+                <MaterialIcons name="chevron-right" size={28} color={theme.colors.primary} />
+            </View>
         </TouchableOpacity>
     );
 }
@@ -96,6 +100,8 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         marginBottom: 12,
         position: 'relative',
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     mood: {
         alignItems: 'center',

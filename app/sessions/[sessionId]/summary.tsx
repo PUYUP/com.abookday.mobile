@@ -35,6 +35,7 @@ import {
     View
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot from "react-native-view-shot";
 
@@ -101,6 +102,7 @@ export default function ReadingSummaryScreen({
 }: Props) {
     const router  = useRouter();
     const insets  = useSafeAreaInsets();
+    const theme   = useTheme();
 
     // States
     const [isSharing, setIsSharing] = useState<boolean>(false);
@@ -201,6 +203,12 @@ export default function ReadingSummaryScreen({
                 title: 'Summary',
                 headerBackButtonDisplayMode: 'minimal',
                 headerShadowVisible: false,
+                headerRight: () => (
+                    <TouchableOpacity onPress={() => {}} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <MaterialIcons name="edit" size={22} color={theme.colors.primary} />
+                        <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '600' }}>Edit</Text>
+                    </TouchableOpacity>
+                )
             }} />
 
             <KeyboardAwareScrollView
@@ -368,7 +376,7 @@ export default function ReadingSummaryScreen({
 
                 {/* ── Share Section ── */}
                 <View style={s.shareSection}>
-                    <Text style={s.shareLabel}>Let Friends Know</Text>
+                    <Text style={s.shareLabel}>Let Your Friends Know</Text>
                     <View style={s.shareRow}>
                         <TouchableOpacity
                             style={[s.shareBtn, s.btnFB]}
@@ -404,7 +412,7 @@ function StatBox({ label, value, unit }: { label: string; value: string; unit: s
 const s = StyleSheet.create({
     root: {
         flex:            1,
-        backgroundColor: '#fff',
+        backgroundColor: '#f5f5f5',
     },
     scroll: {
         alignItems:    'center',
@@ -415,7 +423,7 @@ const s = StyleSheet.create({
     card: {
         width:           '100%',
         maxWidth:        520,
-        backgroundColor: C.paper,
+        backgroundColor: '#fff',
         borderRadius:    0,
         overflow:        'hidden',
     },
@@ -514,17 +522,18 @@ const s = StyleSheet.create({
         color:      C.ink,
     },
     progressTrack: {
-        height:          10,
+        height:          16,
         backgroundColor: C.warm,
-        borderRadius:    2,
+        borderRadius:    8,
         overflow:        'hidden',
         borderWidth:     1,
-        borderColor:     'rgba(200,133,58,0.2)',
+        borderColor:     C.amber,
+        padding:         2,
     },
     progressFill: {
         height:          '100%',
         backgroundColor: C.amber,
-        borderRadius:    2,
+        borderRadius:    8,
     },
     progressInfo: {
         flexDirection:  'row',
@@ -555,11 +564,8 @@ const s = StyleSheet.create({
         marginTop: 16,
     },
     shareLabel: {
-        fontSize:      10,
+        fontSize:      14,
         fontWeight:    '600',
-        letterSpacing: 2.5,
-        textTransform: 'uppercase',
-        color:         C.gold,
         textAlign:     'center',
     },
     shareRow: {
