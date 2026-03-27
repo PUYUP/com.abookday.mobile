@@ -368,7 +368,7 @@ export default function StreakCard() {
               onPress={handleAdjust}
               activeOpacity={0.7}
             >
-              <MaterialIcons name="settings" size={16} color="#3B82F6" style={styles.actionIcon} />
+              <MaterialIcons name="add-task" size={16} color="#3B82F6" style={styles.actionIcon} />
               <Text style={styles.actionText}>Adjust</Text>
             </TouchableOpacity>
 

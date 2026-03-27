@@ -45,12 +45,12 @@ export default function BookItem({ book }: Props) {
                 </View>
 
                 <View style={styles.progressRow}>
-                    {book.status === 'reading' && (
+                    {/* {book.status === 'reading' && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="book" size={14} color={theme.colors.primary} />
                             <Text style={[styles.readingStatus, { color: theme.colors.primary }]}>Reading</Text>
                         </View>
-                    )}
+                    )} */}
 
                     {book.status === 'finished' && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
@@ -73,7 +73,7 @@ export default function BookItem({ book }: Props) {
                         </View>
                     )}
                     
-                    {book.status !== 'archived' && (
+                    {book.status === 'reading' && (
                         <View style={styles.progressCard}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                                 <Text style={styles.pages}>{lastReadPage}</Text>
@@ -148,7 +148,6 @@ export const styles = StyleSheet.create({
     genre: {
         fontSize: 12,
         color: '#64748b',
-        marginTop: 2,
     },
     progressCard: {
         flexDirection: 'row',

@@ -1,5 +1,14 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+export const MOOD_OPTIONS = [
+  { id: 'sleepy',     label: 'Sleepy',     emoji: '😴', color: '#7A8C9E' },
+  { id: 'emotional',  label: 'Emotional',  emoji: '😢', color: '#6B5FA0' },
+  { id: 'inspired',   label: 'Inspired',   emoji: '😮', color: '#8C4A6E' },
+  { id: 'thoughtful', label: 'Thoughtful', emoji: '🤔', color: '#4A7A8C' },
+  { id: 'calm',       label: 'Calm',       emoji: '😌', color: '#4A8C75' },
+  { id: 'happy',      label: 'Happy',      emoji: '😊', color: '#C9A84C' },
+] as const;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------

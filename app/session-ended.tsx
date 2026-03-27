@@ -1,4 +1,4 @@
-import { MoodOption, SessionData } from "@/state/reading/reading-slice";
+import { MOOD_OPTIONS, MoodOption, SessionData } from "@/state/reading/reading-slice";
 import { useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -15,19 +15,6 @@ import {
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const MOOD_OPTIONS = [
-  { id: "happy",      label: "Happy",      emoji: "😊", color: "#C9A84C" },
-  { id: "calm",       label: "Calm",       emoji: "😌", color: "#4A8C75" },
-  { id: "thoughtful", label: "Thoughtful", emoji: "🤔", color: "#4A7A8C" },
-  { id: "inspired",   label: "Inspired",   emoji: "😮", color: "#8C4A6E" },
-  { id: "emotional",  label: "Emotional",  emoji: "😢", color: "#6B5FA0" },
-  { id: "sleepy",     label: "Sleepy",     emoji: "😴", color: "#7A8C9E" },
-] as const;
 
 // Derive the union type from the constant so it stays in sync automatically.
 type MoodId = (typeof MOOD_OPTIONS)[number]["id"];

@@ -18,6 +18,7 @@
  * Deep-links to Facebook & Twitter use Linking.
  */
 
+import { MOOD_OPTIONS } from '@/state/reading/reading-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -61,16 +62,6 @@ function formatDate(): string {
         day:     'numeric',
     });
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-const MOOD_OPTIONS = [
-    { id: 'happy',      label: 'Happy',      emoji: '😊', color: '#C9A84C' },
-    { id: 'calm',       label: 'Calm',       emoji: '😌', color: '#4A8C75' },
-    { id: 'thoughtful', label: 'Thoughtful', emoji: '🤔', color: '#4A7A8C' },
-    { id: 'inspired',   label: 'Inspired',   emoji: '😮', color: '#8C4A6E' },
-    { id: 'emotional',  label: 'Emotional',  emoji: '😢', color: '#6B5FA0' },
-    { id: 'sleepy',     label: 'Sleepy',     emoji: '😴', color: '#7A8C9E' },
-] as const;
 
 // Derive the union type from the constant so it stays in sync automatically.
 type MoodId = (typeof MOOD_OPTIONS)[number]['id'];
