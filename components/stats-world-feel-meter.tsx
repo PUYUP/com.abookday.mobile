@@ -39,7 +39,7 @@ const CHART_WIDTH = (SCREEN_W - CARD_PADDING * 2 - Y_AXIS_LABEL_WIDTH) - 32; // 
 const BAR_SPACING = Math.floor((CHART_WIDTH - BAR_WIDTH * BAR_COUNT) / (BAR_COUNT - 1));
 const CHART_HEIGHT = 140;
 
-export const MoodMeter: React.FC = () => {
+export const WorldFeelMeterStats: React.FC = () => {
   const [moodData] = useState<MoodData>(MOCK_TODAY_DATA);
   const total = getTotalVotes(moodData);
   const [chartKey, setChartKey] = useState(0);
@@ -67,7 +67,7 @@ export const MoodMeter: React.FC = () => {
 
   return (
     <View style={{ paddingHorizontal: 16 }}>
-    <View style={styles.chartCard}>
+      <View style={styles.chartCard}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 4 }}>
             <Text style={styles.sectionLabel}>Today's World Reader Feel</Text>
             <TouchableOpacity onPress={refresh}>
@@ -75,55 +75,55 @@ export const MoodMeter: React.FC = () => {
             </TouchableOpacity>
         </View>
 
-      <View style={{ height: CHART_HEIGHT, overflow: 'hidden' }}>
-        {/* Manual background tracks — rendered behind the chart */}
-        <View style={styles.trackRow}>
-          {MOOD_OPTIONS.map(mood => (
-            <View
-              key={mood.id}
-              style={[styles.track, { width: BAR_WIDTH, height: CHART_HEIGHT - 20 }]}
+        <View style={{ height: CHART_HEIGHT, overflow: 'hidden' }}>
+          {/* Manual background tracks — rendered behind the chart */}
+          <View style={styles.trackRow}>
+            {MOOD_OPTIONS.map(mood => (
+              <View
+                key={mood.id}
+                style={[styles.track, { width: BAR_WIDTH, height: CHART_HEIGHT - 20 }]}
+              />
+            ))}
+          </View>
+
+          <View style={StyleSheet.absoluteFill}>
+            <BarChart
+              key={chartKey}
+              data={barData}
+              width={CHART_WIDTH}
+              barWidth={BAR_WIDTH}
+              spacing={BAR_SPACING}
+              initialSpacing={0}
+              height={CHART_HEIGHT}
+              endSpacing={0}
+              yAxisLabelWidth={Y_AXIS_LABEL_WIDTH}
+              roundedTop
+              hideRules
+              hideAxesAndRules
+              disableScroll
+              isAnimated
+              animationDuration={900}
+              showGradient
+              barBorderRadius={8}
+              noOfSections={4}
+              yAxisThickness={0}
+              xAxisThickness={0}
+              labelWidth={BAR_WIDTH}
+              cappedBars
+              capColor={'transparent'}
+              capThickness={0}
             />
+          </View>
+        </View>
+
+        <View style={styles.emojiRow}>
+          {MOOD_OPTIONS.map(mood => (
+            <View key={mood.id} style={styles.emojiCell}>
+              <Text style={styles.emojiAxisLabel}>{mood.emoji}</Text>
+            </View>
           ))}
         </View>
-
-        <View style={StyleSheet.absoluteFill}>
-          <BarChart
-            key={chartKey}
-            data={barData}
-            width={CHART_WIDTH}
-            barWidth={BAR_WIDTH}
-            spacing={BAR_SPACING}
-            initialSpacing={0}
-            height={CHART_HEIGHT}
-            endSpacing={0}
-            yAxisLabelWidth={Y_AXIS_LABEL_WIDTH}
-            roundedTop
-            hideRules
-            hideAxesAndRules
-            disableScroll
-            isAnimated
-            animationDuration={900}
-            showGradient
-            barBorderRadius={8}
-            noOfSections={4}
-            yAxisThickness={0}
-            xAxisThickness={0}
-            labelWidth={BAR_WIDTH}
-            cappedBars
-            capColor={'transparent'}
-            capThickness={0}
-          />
-        </View>
       </View>
-
-      <View style={styles.emojiRow}>
-        {MOOD_OPTIONS.map(mood => (
-          <View key={mood.id} style={styles.emojiCell}>
-            <Text style={styles.emojiAxisLabel}>{mood.emoji}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
     </View>
   );
 };
@@ -141,10 +141,8 @@ const styles = StyleSheet.create({
     borderColor: '#dcdcdc',
   },
   sectionLabel: {
-    fontSize: 13,
+    fontSize: 17,
     color: '#6B6B8A',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
     textAlign: 'center',
     fontWeight: '600',
   },
@@ -177,4 +175,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MoodMeter;
+export default WorldFeelMeterStats;
