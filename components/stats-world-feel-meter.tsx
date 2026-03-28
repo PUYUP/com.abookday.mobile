@@ -37,7 +37,7 @@ const BAR_COUNT = MOOD_OPTIONS.length;
 const Y_AXIS_LABEL_WIDTH = 0;
 const CHART_WIDTH = (SCREEN_W - CARD_PADDING * 2 - Y_AXIS_LABEL_WIDTH) - 32; // 32 is wrapper paddingHorizontal in this component, to give some space on the sides of the chart
 const BAR_SPACING = Math.floor((CHART_WIDTH - BAR_WIDTH * BAR_COUNT) / (BAR_COUNT - 1));
-const CHART_HEIGHT = 140;
+const CHART_HEIGHT = 100;
 
 export const WorldFeelMeterStats: React.FC = () => {
   const [moodData] = useState<MoodData>(MOCK_TODAY_DATA);
@@ -136,7 +136,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     paddingVertical: 16,
-    marginBottom: 24,
     borderWidth: 1,
     borderColor: '#dcdcdc',
   },

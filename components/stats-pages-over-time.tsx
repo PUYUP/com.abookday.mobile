@@ -45,7 +45,7 @@ const COLORS = {
   accent: '#E8A857',
 };
 
-const CHART_HEIGHT = 140;
+const CHART_HEIGHT = 100;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_WIDTH = SCREEN_WIDTH - 32; // 16px padding each side
 
@@ -109,17 +109,17 @@ function StatPill({
 }: {
   label: string;
   value: number;
-  unit: string;
+  unit: string | null;
   color: string;
 }) {
   return (
     <View style={[styles.statPill, { borderColor: color + '40', backgroundColor: color + '20' }]}>
       <View>
+        <Text style={styles.statLabel}>{label}</Text>
         <Text style={[styles.statValue, { color }]}>
           {value}
-          <Text style={styles.statUnit}> {unit}</Text>
-        </Text>
-        <Text style={styles.statLabel}>{label}</Text>
+          {unit && <Text style={styles.statUnit}> {unit}</Text>}
+        </Text>        
       </View>
     </View>
   );
@@ -165,14 +165,6 @@ export default function PagesOverTimeStats() {
                 </View>
             </View>
 
-            {/* ── Summary stats ──────────────────────────────── */}
-            <View style={styles.statsRow}>
-                <StatPill label="Minutes Total"   value={totalMinutes} unit="min" color={COLORS.minutes} />
-                <StatPill label="Total Pages" value={totalPages}   unit="pages" color={COLORS.pages}   />
-                <StatPill label="Average/Day" value={avgMinutes}  unit="min" color={COLORS.minutes} />
-                <StatPill label="Average/Day" value={avgPages}    unit="pages" color={COLORS.pages}   />
-            </View>
-
             {/* ── Chart ──────────────────────────────────────── */}
             <View style={styles.chartWrapper}>
                 <BarChart
@@ -194,6 +186,14 @@ export default function PagesOverTimeStats() {
                     roundedTop
                     backgroundColor={COLORS.bg}
                 />
+            </View>
+
+            {/* ── Summary stats ──────────────────────────────── */}
+            <View style={styles.statsRow}>
+                <StatPill label="Minutes Total"   value={totalMinutes} unit={null} color={COLORS.minutes} />
+                <StatPill label="Total Pages" value={totalPages}   unit={null} color={COLORS.pages}   />
+                <StatPill label="Average/Day" value={avgMinutes}  unit="min" color={COLORS.minutes} />
+                <StatPill label="Average/Day" value={avgPages}    unit="pages" color={COLORS.pages}   />
             </View>
         </View>
     </View>

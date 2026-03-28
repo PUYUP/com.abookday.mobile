@@ -381,7 +381,7 @@ export default function ReadingPlayer() {
                                     <Text style={styles.progressValue}>34</Text>
                                 </View>
                                 <View style={styles.progressMeta}>
-                                    <Text style={styles.progressLabel}>Track</Text>
+                                    <Text style={styles.progressLabel}>Progress</Text>
                                     <Text style={[styles.progressValue, { color: '#2e8b57' }]}>74%</Text>
                                 </View>
                             </>
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     progressMeta: {
-        width: 60,
+        width: 66,
     },
     progressLabel: {
         fontSize:      11,
