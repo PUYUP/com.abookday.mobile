@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useRef } from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,7 +8,6 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useTheme } from 'react-native-paper';
 
 export default function BookEditorScreen() {
-    const router = useRouter();
     const theme = useTheme();
     const { mode } = useLocalSearchParams<{ mode?: string }>();
     const formRef = useRef<BookFormHandle>(null);
@@ -21,6 +20,8 @@ export default function BookEditorScreen() {
         <React.Fragment>
             <Stack.Screen
                 options={{
+                    title: mode === 'edit' ? 'Edit Book' : 'Add Book',
+                    headerBackTitle: 'Back',
                     headerStyle: { backgroundColor: '#fff' },
                     headerRight: () => (
                         <TouchableOpacity onPress={() => formRef.current?.submit()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

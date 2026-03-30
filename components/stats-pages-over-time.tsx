@@ -1,11 +1,11 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 
@@ -113,7 +113,7 @@ function StatPill({
   color: string;
 }) {
   return (
-    <View style={[styles.statPill, { borderColor: color + '40', backgroundColor: color + '20' }]}>
+    <View style={[styles.statPill, { borderColor: color + '40' }]}>
       <View>
         <Text style={styles.statLabel}>{label}</Text>
         <Text style={[styles.statValue, { color }]}>
@@ -189,11 +189,16 @@ export default function PagesOverTimeStats() {
             </View>
 
             {/* ── Summary stats ──────────────────────────────── */}
-            <View style={styles.statsRow}>
-                <StatPill label="Minutes Total"   value={totalMinutes} unit={null} color={COLORS.minutes} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 0, paddingHorizontal: 4 }}>
+              <View style={styles.statsRow}>
+                <StatPill label="Total Minutes"   value={totalMinutes} unit={null} color={COLORS.minutes} />
+                <StatPill label="Avg/Day" value={avgMinutes}  unit={null} color={COLORS.minutes} />
+              </View>
+
+              <View style={styles.statsRow}>
                 <StatPill label="Total Pages" value={totalPages}   unit={null} color={COLORS.pages}   />
-                <StatPill label="Average/Day" value={avgMinutes}  unit="min" color={COLORS.minutes} />
-                <StatPill label="Average/Day" value={avgPages}    unit="pages" color={COLORS.pages}   />
+                <StatPill label="Avg/Day" value={avgPages}    unit={null} color={COLORS.pages}   />
+              </View>
             </View>
         </View>
     </View>
@@ -252,20 +257,11 @@ const styles = StyleSheet.create({
   // Stats row
   statsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: 16,
   },
   statPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    gap: 8,
-    flex: 1,
-    minWidth: '44%',
   },
   statAccent: {
     width: 3,
@@ -273,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
   },
   statUnit: {
@@ -282,9 +278,9 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: 12,
     color: COLORS.textMuted,
-    marginTop: 1,
+    marginBottom: 2,
   },
 
   // Chart

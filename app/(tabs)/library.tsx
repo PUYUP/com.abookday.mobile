@@ -92,7 +92,7 @@ export default function LibraryScreen() {
 
               {/* Placeholder for future filter/sort button */}
               <View style={styles.actionsContainer}>
-                <TouchableOpacity style={styles.addBookButton} onPress={() => router.push({ pathname: '/book-editor', params: { mode: 'add' } })}>
+                <TouchableOpacity style={styles.addBookButton} onPress={() => router.push({ pathname: '/books/book-editor', params: { mode: 'add' } })}>
                   <Button
                     icon={() => <MaterialIcons name="add" size={26} color={theme.colors.primary} />}
                   >

@@ -336,7 +336,7 @@ export default function StreakCard() {
   const closeMenu = useCallback(() => setMenuVisible(false), []);
 
   const handleAdjust = useCallback(() => {
-    router.push('/adjust-goal');
+    router.push('/sessions/adjust-goal');
   }, [router]);
 
   // BUG FIX: The entire 130-line if/else chain in useEffect was really four

@@ -102,6 +102,8 @@ export default function GenreSelector() {
         <React.Fragment>
             <Stack.Screen
                 options={{
+                    title: 'Select Genre',
+                    headerBackTitle: 'Back',
                     headerRight: () => (
                         <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '600' }}>Done</Text>
@@ -110,7 +112,7 @@ export default function GenreSelector() {
                 }}
             />
             
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={styles.container} edges={['bottom']}>
                 <FlatList
                     data={data}
                     keyExtractor={(item) => item.code}

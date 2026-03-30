@@ -49,10 +49,6 @@ export default function RootLayout() {
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-              <Stack.Screen name="session-ended" options={{ presentation: 'fullScreenModal', headerShown: false }} />
-              <Stack.Screen name="adjust-goal" options={{ title: 'Adjust Goal', headerBackTitle: 'Back', headerBackButtonDisplayMode: 'minimal' }} />
-              <Stack.Screen name="book-editor" options={{ title: 'Book Editor', headerBackTitle: 'Back' }} />
-              <Stack.Screen name="genre-selector" options={{ title: 'Select Genre', presentation: 'fullScreenModal', headerBackTitle: 'Back' }} />
             </Stack>
           </KeyboardProvider>
           <StatusBar style="auto" />

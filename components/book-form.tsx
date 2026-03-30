@@ -193,7 +193,7 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
               render={() => (
                 <TouchableOpacity
                   style={[styles.input, styles.selectInput, errors.genre && styles.inputError]}
-                  onPress={() => router.push('/genre-selector')}
+                  onPress={() => router.push('/books/genre-selector')}
                   activeOpacity={0.7}
                 >
                   <Text style={selectedGenre ? styles.selectText : styles.selectPlaceholder}>

@@ -201,7 +201,7 @@ export default function ReadingSummaryScreen({
         <View style={s.root}>
             <Stack.Screen options={{
                 title: 'Summary',
-                headerBackButtonDisplayMode: 'minimal',
+                headerBackTitle: 'Back',
                 headerShadowVisible: false,
                 headerRight: () => (
                     <TouchableOpacity onPress={() => {}} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

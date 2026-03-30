@@ -232,6 +232,8 @@ export default function AdjustGoalScreen() {
     <SafeAreaView style={s.safe} edges={['bottom']}>
       <Stack.Screen
         options={{
+          title: 'Adjust Goal',
+          headerBackTitle: 'Back',
           headerStyle: { backgroundColor: '#fff' },
           headerRight: () => (
             <TouchableOpacity onPress={() => handleSave()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

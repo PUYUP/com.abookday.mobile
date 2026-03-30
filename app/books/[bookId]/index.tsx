@@ -159,10 +159,13 @@ export default function BookDetailScreen() {
             <Stack.Screen
                 options={{
                     headerTitle: 'Book Details',
-                    headerBackButtonDisplayMode: 'minimal',
+                    headerBackTitle: 'Back',
                     headerRight: () => (
                         <TouchableOpacity
-                            onPress={() => {}}
+                            onPress={() => router.push({ 
+                                pathname: '/books/book-editor', 
+                                params: { mode: 'edit' } 
+                            })}
                             style={[styles.headerButton, { gap: 6 }]}
                         >
                             <MaterialIcons name="edit" size={22} color={theme.colors.primary} />
