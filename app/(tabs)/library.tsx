@@ -96,7 +96,7 @@ export default function LibraryScreen() {
                   <Button
                     icon={() => <MaterialIcons name="add" size={26} color={theme.colors.primary} />}
                   >
-                    <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '600' }}>Book</Text>
+                    <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: '600' }}>Add Book</Text>
                   </Button>
                 </TouchableOpacity>
               </View>
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   actionsContainer: {
   },
   addBookButton: {
-    width: 80,
+    width: 'auto',
   },
   scrollView: {
     flex: 1,
