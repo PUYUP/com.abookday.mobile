@@ -1,3 +1,4 @@
+import ReadingPlayerMinimal from '@/components/reading-player-minimal';
 import SessionList from '@/components/session-list';
 import { BookDetails } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -211,6 +212,11 @@ export default function BookDetailScreen() {
                                 )}
                             </View>
                         </View>
+                    </View>
+
+                    {/* Reading player */}
+                    <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+                        <ReadingPlayerMinimal />
                     </View>
 
                     {/* Reading stats */}

@@ -3,7 +3,15 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Animated, Easing, LayoutChangeEvent, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+    Animated,
+    Easing,
+    LayoutChangeEvent,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from 'react-native';
 import { useKeyboardHandler } from 'react-native-keyboard-controller';
 import { Button, Dialog, Portal, useTheme } from 'react-native-paper';
 import { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -37,11 +45,9 @@ const formatTime = (totalSeconds: number): string => {
 const nowISO = () => new Date().toISOString();
 
 // ---------------------------------------------------------------------------
-// Keyboard offset hook
-// FIX: removed console.log that fired on every render.
-// FIX: hook now returns both the animated style AND the raw pixel value so
-//      callers can use whichever they need without running two separate
-//      keyboard-tracking systems.
+// useKeyboardOffset
+// Returns an animated marginBottom style and the raw shared-value height so
+// callers have a single source of truth for keyboard position.
 // ---------------------------------------------------------------------------
 
 function useKeyboardOffset(insets: ReturnType<typeof useSafeAreaInsets>) {
@@ -76,33 +82,27 @@ export default function ReadingPlayerMinimal() {
     const dispatch = useDispatch();
     const readingState = useSelector((state: any) => state.reading);
 
-    const [status,             setStatus]             = useState<Status>('stopped');
-    const [seconds,            setSeconds]            = useState(0);
-    const [confirmEndReading,  setConfirmEndReading]  = useState(false);
+    const [status,            setStatus]            = useState<Status>('stopped');
+    const [seconds,           setSeconds]           = useState(0);
+    const [confirmEndReading, setConfirmEndReading] = useState(false);
+    const [keyboardHeight,    setKeyboardHeight]    = useState(0);
 
-    // FIX: removed duplicate KeyboardEvents listeners. keyboardHeight is now
-    // derived from the single useKeyboardOffset hook instead of running two
-    // separate keyboard-tracking systems in parallel.
-    const { animatedStyle: _keyboardAnimStyle, height: keyboardHeightSV } = useKeyboardOffset(insets);
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const { height: keyboardHeightSV } = useKeyboardOffset(insets);
 
+    // Mirror shared value → plain state for Dialog's marginBottom (runs at ~60 fps).
     useEffect(() => {
-        // Mirror the shared value into plain state for the Dialog's marginBottom.
-        const id = setInterval(() => {
-            setKeyboardHeight(keyboardHeightSV.value);
-        }, 16);
+        const id = setInterval(() => setKeyboardHeight(keyboardHeightSV.value), 16);
         return () => clearInterval(id);
     }, [keyboardHeightSV]);
 
-    const dialogInputRef = useRef<TextInput | null>(null);
+    const dialogInputRef  = useRef<TextInput | null>(null);
+    const actionLogRef    = useRef<TimerLog[]>([]);
+    const intervalRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+    const spinAnim        = useRef(new Animated.Value(0)).current;
+    const spinAnimRef     = useRef<Animated.CompositeAnimation | null>(null);
+    const isStoppingRef   = useRef(false);
 
-    const actionLogRef = useRef<TimerLog[]>([]);
     const [, forceUpdate] = useState(0);
-
-    const intervalRef    = useRef<ReturnType<typeof setInterval> | null>(null);
-    const spinAnim       = useRef(new Animated.Value(0)).current;
-    const spinAnimRef    = useRef<Animated.CompositeAnimation | null>(null);
-    const isStoppingRef  = useRef(false);
 
     // -------------------------------------------------------------------------
     // Log helpers
@@ -131,12 +131,7 @@ export default function ReadingPlayerMinimal() {
     }, []);
 
     // -------------------------------------------------------------------------
-    // Auto-focus the dialog input
-    // FIX (bug 2): the original code used setTimeout(..., 120ms) which races
-    // against the Dialog's mount animation — on slower devices the ref is still
-    // null when the timeout fires. Instead we focus from onLayout, which is
-    // guaranteed to fire exactly once after the TextInput is fully in the
-    // layout tree, so the ref is always populated by then.
+    // Auto-focus dialog input via onLayout (avoids setTimeout race condition)
     // -------------------------------------------------------------------------
 
     const handleInputLayout = useCallback((_e: LayoutChangeEvent) => {
@@ -157,40 +152,25 @@ export default function ReadingPlayerMinimal() {
         mode: 'onChange',
     });
 
-    // FIX (bug 1): onDismiss was wired to endRead (the destructive submit
-    // handler). When the keyboard appeared and the user tapped outside the
-    // dialog, endRead fired handleStop() and navigated away before the user
-    // had a chance to interact — making it look like the dialog never showed.
-    // onDismiss should be a neutral no-op (or keepRead) so tapping outside
-    // merely collapses the keyboard without destroying session state.
-    const handleDismiss = useCallback(() => {
-        // Intentionally do nothing: require an explicit button press.
-        // If you want tapping outside to act as "keep reading", call keepRead() here.
-    }, []);
-
-    const showDialog = () => setConfirmEndReading(true);
+    // Neutral dismiss — require an explicit button press; tapping outside
+    // must not trigger the destructive endRead path.
+    const handleDismiss = useCallback(() => {}, []);
 
     const endRead = handleSubmit((data) => {
         handleStop();
         setConfirmEndReading(false);
         reset();
-
         router.push({
             pathname: `/sessions/[sessionId]/summary`,
-            params: {
-                sessionId: 124,
-                lastPage:  data.pageNumber,
-            },
+            params: { sessionId: 124, lastPage: data.pageNumber },
         });
     });
 
     const keepRead = useCallback(() => {
         reset();
         setConfirmEndReading(false);
-        // Resume reading only if we were previously in a reading state.
-        // handleRead guards against re-entering 'reading' from 'reading'.
         handleRead();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [reset]);
 
     // -------------------------------------------------------------------------
@@ -201,16 +181,12 @@ export default function ReadingPlayerMinimal() {
         if (status === 'reading') {
             intervalRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
         } else {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
+            clearInterval(intervalRef.current ?? undefined);
+            intervalRef.current = null;
         }
         return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
+            clearInterval(intervalRef.current ?? undefined);
+            intervalRef.current = null;
         };
     }, [status]);
 
@@ -232,9 +208,7 @@ export default function ReadingPlayerMinimal() {
         } else {
             spinAnimRef.current?.stop();
             spinAnimRef.current = null;
-            if (status === 'stopped') {
-                spinAnim.setValue(0);
-            }
+            if (status === 'stopped') spinAnim.setValue(0);
         }
     }, [status, spinAnim]);
 
@@ -278,24 +252,15 @@ export default function ReadingPlayerMinimal() {
     }, [status, appendLog, patchLastPauseWithResume, dispatch]);
 
     const handlePause = useCallback(
-        (action: string = '') => {
+        (action = '') => {
             if (status === 'reading') {
                 const time = nowISO();
                 appendLog({ action: 'pause', time, timerAtPause: time, timerAtResume: undefined });
                 setStatus('paused');
-
-                dispatch({
-                    type:    'reading/pauseReading',
-                    payload: { timer: [...actionLogRef.current] },
-                });
+                dispatch({ type: 'reading/pauseReading', payload: { timer: [...actionLogRef.current] } });
             }
-
-            if (action === 'stopped') {
-                showDialog();
-            }
+            if (action === 'stopped') setConfirmEndReading(true);
         },
-        // FIX: removed `router` from the dependency array — it was never used
-        // inside handlePause, causing unnecessary re-creation of the callback.
         [status, appendLog, dispatch]
     );
 
@@ -303,9 +268,7 @@ export default function ReadingPlayerMinimal() {
         if (isStoppingRef.current) return;
         isStoppingRef.current = true;
 
-        const finishEntry: TimerLog = { action: 'finish', time: nowISO() };
-        const finalLog = [...actionLogRef.current, finishEntry];
-
+        const finalLog = [...actionLogRef.current, { action: 'finish', time: nowISO() } as TimerLog];
         dispatch({ type: 'reading/finishReading', payload: { timer: finalLog } });
 
         setStatus('stopped');
@@ -319,22 +282,22 @@ export default function ReadingPlayerMinimal() {
     // Derived values
     // -------------------------------------------------------------------------
 
-    const spin = spinAnim.interpolate({
-        inputRange:  [0, 1],
-        outputRange: ['0deg', '360deg'],
-    });
-
+    const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
     const isActive = status === 'reading' || status === 'paused';
 
     const playPauseIcon =
-        status === 'reading' ? 'pause' :
-        status === 'paused'  ? 'play-arrow' :
-                               'play-lesson';
+        status === 'reading' ? 'pause'        :
+        status === 'paused'  ? 'play-arrow'   :
+                               'play-lesson'  as any;
 
     const playPauseLabel =
-        status === 'reading' ? 'Pause' :
-        status === 'paused'  ? 'Resume' :
-                               'Read';
+        status === 'reading' ? 'Pause'     :
+        status === 'paused'  ? 'Resume'    :
+                               'Read Now';
+
+    const dialogMarginBottom = keyboardHeight > 0
+        ? keyboardHeight - insets.bottom
+        : insets.bottom;
 
     // -------------------------------------------------------------------------
     // Render
@@ -343,48 +306,13 @@ export default function ReadingPlayerMinimal() {
     return (
         <React.Fragment>
             <View style={styles.card}>
-                {/* Top row */}
-                <View style={styles.topRow}>
-                    <View style={styles.albumArt}>
-                        <View style={styles.albumArtInner}>
-                            <Animated.View
-                                style={[styles.vinylRing, { transform: [{ rotate: spin }] }]}
-                            />
-                            <Text style={styles.albumLabel}>PAUL'S</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.songInfo}>
-                        <View style={styles.songMeta}>
-                            <Text style={styles.songTitle} numberOfLines={2}>
-                                {BOOK_DATA.title}
-                            </Text>
-                            {BOOK_DATA.author && (
-                                <Text style={styles.songArtist}>{BOOK_DATA.author}</Text>
-                            )}
-                            <Text style={styles.songAlbum}>{BOOK_DATA.genre.toUpperCase()}</Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Bottom row */}
                 <View style={styles.bottomRow}>
                     <View style={styles.progressRow}>
                         {status === 'stopped' ? (
-                            <>
-                                <View style={styles.progressMeta}>
-                                    <Text style={styles.progressLabel}>Pages</Text>
-                                    <Text style={styles.progressValue}>873</Text>
-                                </View>
-                                <View style={styles.progressMeta}>
-                                    <Text style={styles.progressLabel}>Left</Text>
-                                    <Text style={styles.progressValue}>34</Text>
-                                </View>
-                                <View style={styles.progressMeta}>
-                                    <Text style={styles.progressLabel}>Progress</Text>
-                                    <Text style={[styles.progressValue, { color: '#2e8b57' }]}>74%</Text>
-                                </View>
-                            </>
+                            <View style={styles.progressMeta}>
+                                <Text style={styles.progressLabel}>Pages Left:</Text>
+                                <Text style={styles.progressValue}>34</Text>
+                            </View>
                         ) : (
                             <Text style={styles.timer}>{formatTime(seconds)}</Text>
                         )}
@@ -402,21 +330,21 @@ export default function ReadingPlayerMinimal() {
                             onPress={status === 'reading' ? () => handlePause() : handleRead}
                             style={[
                                 styles.controlButton,
-                                { backgroundColor: 'rgba(30,144,255,0.05)' },
-                                status === 'stopped' && { width: 'auto' },
+                                styles.playButton,
+                                status === 'stopped' && styles.controlButtonAuto,
                             ]}
-                            labelStyle={{ marginLeft: status === 'stopped' ? 14 : 10 }}
+                            labelStyle={status === 'stopped' ? styles.labelStopped : styles.labelActive}
                         >
                             {playPauseLabel}
                         </Button>
 
                         {isActive && (
                             <Button
-                                icon={() => <MaterialIcons name="check" color="#2e8b57" size={26} />}
+                                icon={() => <MaterialIcons name="check" color={COLORS.green} size={26} />}
                                 onPress={() => handlePause('stopped')}
-                                textColor="#2e8b57"
-                                style={[styles.controlButton, { backgroundColor: 'rgba(46,139,87,0.1)' }]}
-                                labelStyle={{ marginLeft: 10 }}
+                                textColor={COLORS.green}
+                                style={[styles.controlButton, styles.finishButton]}
+                                labelStyle={styles.labelActive}
                             >
                                 Finish
                             </Button>
@@ -428,19 +356,10 @@ export default function ReadingPlayerMinimal() {
             <Portal>
                 <Dialog
                     visible={confirmEndReading}
-                    // FIX (bug 1): was `onDismiss={endRead}` — tapping outside or the
-                    // keyboard appearing would silently call handleStop() + navigate,
-                    // making the dialog seem to vanish immediately. Now a neutral no-op.
                     onDismiss={handleDismiss}
-                    style={{
-                        borderRadius:    20,
-                        marginBottom:    keyboardHeight > 0
-                            ? keyboardHeight - insets.bottom
-                            : insets.bottom,
-                        marginHorizontal: 20,
-                    }}
+                    style={[styles.dialog, { marginBottom: dialogMarginBottom }]}
                 >
-                    <Dialog.Title style={{ textAlign: 'center' }}>
+                    <Dialog.Title style={styles.dialogTitle}>
                         Enter the last page you read
                     </Dialog.Title>
 
@@ -457,34 +376,21 @@ export default function ReadingPlayerMinimal() {
                                 <TextInput
                                     ref={dialogInputRef}
                                     placeholder="e.g. 120"
-                                    style={{
-                                        borderBottomWidth: 1,
-                                        borderBottomColor: '#ccc',
-                                        marginTop:         8,
-                                        paddingVertical:   16,
-                                        fontSize:          20,
-                                        fontWeight:        '600',
-                                        textAlign:         'center',
-                                    }}
+                                    style={styles.pageInput}
                                     keyboardType="number-pad"
                                     onChangeText={onChange}
                                     onBlur={onBlur}
                                     value={value ?? ''}
-                                    // FIX (bug 2): was setTimeout(..., 120ms) which raced
-                                    // against the Dialog animation — ref could still be null.
-                                    // onLayout fires once the input is fully mounted and
-                                    // measured, guaranteeing the ref is populated.
                                     onLayout={handleInputLayout}
                                 />
                             )}
                         />
-
                         {errors.pageNumber && (
                             <Text style={styles.errorText}>{errors.pageNumber.message}</Text>
                         )}
                     </Dialog.Content>
 
-                    <Dialog.Actions style={{ justifyContent: 'center', gap: 20, paddingBottom: 24 }}>
+                    <Dialog.Actions style={styles.dialogActions}>
                         <Button onPress={keepRead}>Keep Reading</Button>
                         <Button onPress={endRead} disabled={!isValid}>Save Progress</Button>
                     </Dialog.Actions>
@@ -495,83 +401,65 @@ export default function ReadingPlayerMinimal() {
 }
 
 // ---------------------------------------------------------------------------
+// Design tokens
+// ---------------------------------------------------------------------------
+
+const COLORS = {
+    green:       '#2e8b57',
+    greenBg:     'rgba(46,139,87,0.10)',
+    primaryBg:   'rgba(30,144,255,0.05)',
+    border:      '#dcdcdc',
+    timerText:   '#666',
+    metaLabel:   '#888',
+    metaValue:   '#333',
+    error:       '#E53E3E',
+    inputBorder: '#ccc',
+};
+
+// ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
+    // --- Card ---
     card: {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#fff',
         borderRadius:    20,
         width:           '100%',
         borderWidth:     1,
-        borderColor:     '#dcdcdc',
+        borderColor:     COLORS.border,
+        padding:         12,
     },
-    topRow: {
-        flexDirection: 'row',
-        alignItems:    'center',
-        gap:           14,
-        padding:       16,
-        paddingBottom: 12,
-    },
-    albumArt: {
-        width:           70,
-        height:          84,
-        borderRadius:    10,
-        backgroundColor: '#1a1a1a',
-        overflow:        'hidden',
-    },
-    albumArtInner: {
-        flex:           1,
-        alignItems:     'center',
-        justifyContent: 'center',
-        gap:            4,
-    },
-    vinylRing: {
-        width:        28,
-        height:       28,
-        borderRadius: 14,
-        borderWidth:  5,
-        borderColor:  'rgba(255,255,255,0.15)',
-    },
-    albumLabel: {
-        color:         'rgba(255,255,255,0.4)',
-        fontSize:      8,
-        letterSpacing: 1,
-        fontWeight:    '500',
-    },
-    songInfo: {
-        flex:          1,
-        flexDirection: 'row',
-    },
-    songMeta: {
-        flex: 1,
-    },
-    songTitle: {
-        fontSize:     15,
-        fontWeight:   '600',
-        color:        '#1a1a1a',
-        marginBottom: 2,
-    },
-    songArtist: {
-        fontSize:   13,
-        color:      '#888',
-        fontWeight: '400',
-    },
-    songAlbum: {
-        fontSize:      10,
-        color:         '#a3a3a3',
-        fontWeight:    '300',
-        marginTop:     2,
-        letterSpacing: 0.8,
-    },
+
+    // --- Controls row ---
     bottomRow: {
-        flexDirection:   'row',
-        alignItems:      'center',
-        justifyContent:  'space-between',
-        paddingVertical: 12,
-        paddingTop:      0,
-        paddingHorizontal: 12,
-        paddingLeft:     20,
+        flexDirection:  'row',
+        alignItems:     'center',
+        justifyContent: 'space-between',
+    },
+    progressRow: {
+        flexDirection: 'row',
+    },
+    progressMeta: {
+        minWidth:      66,
+        flexDirection: 'row',
+        gap:           4,
+    },
+    progressLabel: {
+        fontSize: 16,
+        color:    COLORS.metaLabel,
+    },
+    progressValue: {
+        fontSize:   16,
+        fontWeight: '700',
+        color:      COLORS.metaValue,
+    },
+    timer: {
+        fontSize:      20,
+        fontWeight:    '800',
+        color:         COLORS.timerText,
+        letterSpacing: 0.5,
+        fontFamily:    'Courier New, monospace',
     },
     controls: {
         flexDirection: 'row',
@@ -581,34 +469,47 @@ const styles = StyleSheet.create({
     controlButton: {
         width: 100,
     },
-    timer: {
-        fontSize:    20,
-        fontWeight:  '800',
-        color:       '#666',
-        letterSpacing: 0.5,
-        fontFamily:  'Courier New, monospace',
+    controlButtonAuto: {
+        width: 'auto',
     },
-    progressRow: {
-        flexDirection: 'row',
+    playButton: {
+        backgroundColor: COLORS.primaryBg,
     },
-    progressMeta: {
-        width: 66,
+    finishButton: {
+        backgroundColor: COLORS.greenBg,
     },
-    progressLabel: {
-        fontSize:      11,
-        color:         '#888',
-        letterSpacing: 0.3,
-        textTransform: 'uppercase',
-        marginBottom:  1,
+    labelStopped: {
+        marginLeft: 14,
     },
-    progressValue: {
-        fontSize:   16,
-        fontWeight: '700',
-        color:      '#333',
+    labelActive: {
+        marginLeft: 10,
+    },
+
+    // --- Dialog ---
+    dialog: {
+        borderRadius:    20,
+        marginHorizontal: 20,
+    },
+    dialogTitle: {
+        textAlign: 'center',
+    },
+    dialogActions: {
+        justifyContent: 'center',
+        gap:            20,
+        paddingBottom:  24,
+    },
+    pageInput: {
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.inputBorder,
+        marginTop:         8,
+        paddingVertical:   16,
+        fontSize:          20,
+        fontWeight:        '600',
+        textAlign:         'center',
     },
     errorText: {
         fontSize:  12,
-        color:     '#E53E3E',
+        color:     COLORS.error,
         marginTop: 6,
         textAlign: 'center',
     },
