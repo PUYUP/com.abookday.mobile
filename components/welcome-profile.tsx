@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { StyleSheet, Text, View } from 'react-native';
-import { IconButton, useTheme } from 'react-native-paper';
+import { Button, useTheme } from 'react-native-paper';
 
 export default function WelcomeProfile() {
     const theme = useTheme();
@@ -11,17 +11,17 @@ export default function WelcomeProfile() {
                 <View style={{ flexDirection: 'column', maxWidth: 180 }}>
                     <Text style={styles.profileName} numberOfLines={1}>Muhammad Rahman</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <MaterialIcons name='wallet-giftcard' size={16} color={theme.colors.primary} />
-                        <Text style={[styles.fansBadge, { color: theme.colors.primary }]}>10 credits</Text>
+                        <Text style={[styles.fansBadge, { color: '#424242' }]}>10 credits</Text>
                     </View>
                 </View>
             </View>
 
-            <IconButton
-                icon={() => <MaterialIcons name="settings" size={20} />}
-                size={20}
+            <Button
+                icon={() => <MaterialIcons name="card-giftcard" size={20} color={theme.colors.primary} />}
                 onPress={() => console.log('Pressed')}
-            />
+            >
+                Buy Credit
+            </Button>
         </View>
     )
 }
@@ -43,14 +43,14 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
     },
     profileName: {
-        fontSize: 15,
+        fontSize: 16,
         color: '#333',
         fontFamily: 'Inter_500Medium',
-        fontWeight: '600',
-        marginBottom: 4,
+        fontWeight: '700',
+        marginBottom: 1,
     },
     fansBadge: {
-        fontSize: 13,
+        fontSize: 15,
         color: '#666',
     },
     topUpButton: {
