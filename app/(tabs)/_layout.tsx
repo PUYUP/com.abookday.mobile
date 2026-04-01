@@ -47,17 +47,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="clubs"
-        options={{
-          title: 'Clubs',
-          tabBarIcon: ({ color }) => <MaterialIcons name="nature-people" size={28} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="insight"
         options={{
           title: 'Insight',
           tabBarIcon: ({ color }) => <MaterialIcons name="insights" size={28} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <MaterialIcons name="person" size={28} color={color} />,
         }}
       />
     </Tabs>

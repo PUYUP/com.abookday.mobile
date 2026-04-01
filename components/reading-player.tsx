@@ -179,6 +179,7 @@ export default function ReadingPlayer() {
             pathname: `/sessions/[sessionId]/summary`,
             params: {
                 sessionId: 124,
+                fromPage:  34,
                 lastPage:  data.pageNumber,
             },
         });

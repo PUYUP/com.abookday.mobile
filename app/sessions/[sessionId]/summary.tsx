@@ -35,7 +35,7 @@ import {
     View
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { useTheme } from 'react-native-paper';
+import { TextInput as PaperTextInput, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot from "react-native-view-shot";
 
@@ -202,7 +202,6 @@ export default function ReadingSummaryScreen({
             <Stack.Screen options={{
                 title: 'Summary',
                 headerBackTitle: 'Back',
-                headerShadowVisible: false,
                 headerRight: () => (
                     <TouchableOpacity onPress={() => {}} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <MaterialIcons name="edit" size={22} color={theme.colors.primary} />
@@ -217,6 +216,35 @@ export default function ReadingSummaryScreen({
                 bottomOffset={insets.bottom + 20}
                 nestedScrollEnabled={true}
             >
+                <View style={s.pagesInputRow}>
+                    <View style={{ flexDirection: 'row', flex: 1, gap: 12 }}>
+                        <View>
+                            <Text style={s.inputLabel}>From page</Text>
+                            <PaperTextInput mode='outlined' style={s.pageInput} keyboardType='numeric' placeholder='e.g. 20' />
+                        </View>
+
+                        <View>
+                            <Text style={s.inputLabel}>To page</Text>
+                            <PaperTextInput mode='outlined' style={s.pageInput} keyboardType='numeric' placeholder='e.g. 40' />
+                        </View>
+                    </View>
+
+                    <View>
+                        <Text style={[s.shareLabel, { fontWeight: 'normal' }]}>Tell Friends</Text>
+                        <View style={s.shareRow}>
+                            <TouchableOpacity
+                                style={[s.shareBtn, s.btnFB]}
+                                onPress={share}
+                                activeOpacity={0.85}
+                                accessibilityLabel="Share on Facebook"
+                            >
+                                <MaterialIcons name="share" size={18} color="#fff" />
+                                <Text style={s.shareBtnText}>Share</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            
                 <ViewShot style={s.card} ref={shotRef}>
                     {/* ── Header ── */}
                     <View style={s.header}>
@@ -272,7 +300,8 @@ export default function ReadingSummaryScreen({
                             on submit. The Controller's onChange is now the single
                             source of truth; isSelected derives from field.value. */}
                         <View>
-                            <View style={[s.progressHeader, { marginBottom: 10 }]}>
+                            <View style={[s.progressHeader, { marginBottom: 10, justifyContent: 'flex-start', alignItems: 'center', gap: 6 }]}>
+                                <MaterialIcons name="monitor-heart" size={18} color={C.amber} />
                                 <Text style={s.progressLabel}>How did this session feel?</Text>
                             </View>
 
@@ -338,7 +367,8 @@ export default function ReadingSummaryScreen({
                         
                         {(!isSharing || getValues('note')) && (
                             <React.Fragment>
-                                <View style={[s.progressHeader]}>
+                                <View style={[s.progressHeader, { justifyContent: 'flex-start', alignItems: 'center', gap: 6 }]}>
+                                    <MaterialIcons name="chat" size={18} color={C.amber} />
                                     <Text style={s.progressLabel}>The Thoughts</Text>
                                 </View>
 
@@ -373,22 +403,6 @@ export default function ReadingSummaryScreen({
                         )}
                     </View>
                 </ViewShot>
-
-                {/* ── Share Section ── */}
-                <View style={s.shareSection}>
-                    <Text style={s.shareLabel}>Let Your Friends Know</Text>
-                    <View style={s.shareRow}>
-                        <TouchableOpacity
-                            style={[s.shareBtn, s.btnFB]}
-                            onPress={share}
-                            activeOpacity={0.85}
-                            accessibilityLabel="Share on Facebook"
-                        >
-                            <MaterialIcons name="share" size={18} color="#fff" />
-                            <Text style={s.shareBtnText}>Share</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
             </KeyboardAwareScrollView>
         </View>
     );
@@ -422,9 +436,9 @@ const s = StyleSheet.create({
     // Card
     card: {
         width:           '100%',
+        height:          '100%',
         maxWidth:        520,
         backgroundColor: '#fff',
-        borderRadius:    0,
         overflow:        'hidden',
     },
 
@@ -559,14 +573,14 @@ const s = StyleSheet.create({
     },
 
     // Share
-    shareSection: {
-        gap:      10,
-        marginTop: 16,
-    },
     shareLabel: {
-        fontSize:      14,
-        fontWeight:    '600',
-        textAlign:     'center',
+        fontSize:      11,
+        textAlign:     'left',
+        textTransform: 'uppercase',
+        paddingLeft: 2,
+        marginBottom:  6,
+        color: '#4A5568',
+        letterSpacing: 0.75,
     },
     shareRow: {
         flexDirection: 'row',
@@ -581,22 +595,10 @@ const s = StyleSheet.create({
         paddingVertical: 12,
         borderRadius:    16,
         width:           112,
+        height:          42,
     },
     btnFB: {
         backgroundColor: '#1877f2',
-        shadowColor:     '#1877f2',
-        shadowOffset:    { width: 0, height: 4 },
-        shadowOpacity:   0.3,
-        shadowRadius:    8,
-        elevation:       4,
-    },
-    btnX: {
-        backgroundColor: '#000',
-        shadowColor:     '#000',
-        shadowOffset:    { width: 0, height: 4 },
-        shadowOpacity:   0.3,
-        shadowRadius:    8,
-        elevation:       4,
     },
     shareBtnText: {
         fontSize:   12.5,
@@ -623,5 +625,26 @@ const s = StyleSheet.create({
     },
     moodEmoji: {
         fontSize: 28,
+    },
+
+    // Pages input
+    pagesInputRow: {
+        flexDirection: 'row',
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        justifyContent: 'space-between',
+    },
+    pageInput: {
+        width: 90,
+        height: 42,
+    },
+    inputLabel: {
+        fontSize: 11,
+        marginBottom: 6,
+        textAlign: 'left',
+        textTransform: 'uppercase',
+        paddingLeft: 2,
+        color: '#4A5568',
+        letterSpacing: 0.75,
     },
 });

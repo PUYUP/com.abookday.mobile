@@ -162,7 +162,11 @@ export default function ReadingPlayerMinimal() {
         reset();
         router.push({
             pathname: `/sessions/[sessionId]/summary`,
-            params: { sessionId: 124, lastPage: data.pageNumber },
+            params: { 
+                sessionId: 124, 
+                fromPage: 34, 
+                lastPage: data.pageNumber,
+            },
         });
     });
 
