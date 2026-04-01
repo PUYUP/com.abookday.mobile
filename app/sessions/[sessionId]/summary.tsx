@@ -166,16 +166,6 @@ export default function ReadingSummaryScreen({
     });
 
     // ── Share ─────────────────────────────────────────────────────────────────
-    // FIX: buildShareText was returning an empty string, so share buttons posted
-    // blank content. Now it constructs a meaningful summary from the session data.
-    function buildShareText(): string {
-        return (
-            `📖 Just finished a reading session!\n` +
-            `"${bookTitle}" by ${author}\n` +
-            `Read ${pagesRead} pages in ${minutesRead} minutes — ${pct}% through the book. 🎉`
-        );
-    }
-
     const share = async() => {
         if (shotRef && shotRef.current) {
             // @ts-ignore
@@ -265,34 +255,6 @@ export default function ReadingSummaryScreen({
 
                     {/* ── Body ── */}
                     <View style={s.body}>
-                        {/* ── Progress Bar ── */}
-                        <View style={s.progressSection}>
-                            <View style={s.progressHeader}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                    <MaterialIcons name="bar-chart" size={18} color={C.amber} />
-                                    <Text style={s.progressLabel}>Overall Progress</Text>
-                                </View>
-                                <Text style={s.progressPct}>{pct}%</Text>
-                            </View>
-                            <View style={s.progressTrack}>
-                                <Animated.View style={[s.progressFill, { width: progressWidth }]} />
-                            </View>
-                            <View style={s.progressInfo}>
-                                <Text style={s.progressInfoText}>Done: {endPage} pages</Text>
-                                <Text style={s.progressInfoText}>
-                                    Left: {Math.max(0, totalPages - endPage)} to go
-                                </Text>
-                            </View>
-                        </View>
-
-                        {/* ── Stats 2×2 Grid ── */}
-                        <View style={[s.statsGrid, { marginBottom: 12 }]}>
-                            <StatBox label="Time"       value={String(minutesRead)} unit="min"              />
-                            <StatBox label="Pages Read" value={String(pagesRead)}   unit={`${startPage} – ${endPage}`} />
-                            <StatBox label="Sessions"   value={`#${sessionNumber}`} unit=""                 />
-                            <StatBox label="Speed"      value={String(speed)}       unit="pages / min"      />
-                        </View>
-
                         {/* ── Mood Selector ── */}
                         {/* FIX: mood is now wired to react-hook-form via Controller.
                             Previously setSelectedMood updated only local state while
@@ -354,6 +316,34 @@ export default function ReadingSummaryScreen({
                                     />
                                 )}
                             />
+                        </View>
+                        
+                        {/* ── Progress Bar ── */}
+                        <View style={s.progressSection}>
+                            <View style={s.progressHeader}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <MaterialIcons name="bar-chart" size={18} color={C.amber} />
+                                    <Text style={s.progressLabel}>Overall Progress</Text>
+                                </View>
+                                <Text style={s.progressPct}>{pct}%</Text>
+                            </View>
+                            <View style={s.progressTrack}>
+                                <Animated.View style={[s.progressFill, { width: progressWidth }]} />
+                            </View>
+                            <View style={s.progressInfo}>
+                                <Text style={s.progressInfoText}>Done: {endPage} pages</Text>
+                                <Text style={s.progressInfoText}>
+                                    Left: {Math.max(0, totalPages - endPage)} to go
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* ── Stats 2×2 Grid ── */}
+                        <View style={[s.statsGrid, { marginBottom: 12 }]}>
+                            <StatBox label="Time"       value={String(minutesRead)} unit="min"              />
+                            <StatBox label="Pages Read" value={String(pagesRead)}   unit={`${startPage} – ${endPage}`} />
+                            <StatBox label="Sessions"   value={`#${sessionNumber}`} unit=""                 />
+                            <StatBox label="Speed"      value={String(speed)}       unit="pages / min"      />
                         </View>
 
                         {/* ── Note Input ── */}
@@ -524,7 +514,7 @@ const s = StyleSheet.create({
         alignItems:     'center',
     },
     progressLabel: {
-        fontSize:      10,
+        fontSize:      11,
         fontWeight:    '600',
         letterSpacing: 2,
         textTransform: 'uppercase',
