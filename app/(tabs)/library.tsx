@@ -1,4 +1,5 @@
 import BookItem from '@/components/book-item';
+import ReadingStatsBook from '@/components/stats-reading-book';
 import { BookDetails } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useRouter } from 'expo-router';
@@ -108,6 +109,10 @@ export default function LibraryScreen() {
       <SafeAreaView style={styles.safeArea} edges={[]}>
         <ScrollView nestedScrollEnabled={true}>
           <View style={styles.scrollContent}>
+            <View style={{ marginBottom: 16 }}>
+              <ReadingStatsBook />
+            </View>
+
             {BOOKS.map((book) => (
               <View key={book.id} style={styles.bookCardWrapper}>
                 <BookItem book={book} />

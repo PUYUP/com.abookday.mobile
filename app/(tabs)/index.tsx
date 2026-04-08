@@ -1,6 +1,6 @@
 import ReadingPlayer from '@/components/reading-player';
+import { WorldFeelMeterStats } from '@/components/stats-world-feel-meter';
 import StreakCard from '@/components/streak-card';
-import WelcomeProfile from '@/components/welcome-profile';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,14 +10,19 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView nestedScrollEnabled={true}>
         <View style={styles.scrollContent}>
-          <View style={[styles.profileRow, { paddingLeft: 6 }]}>
+          {/* <View style={[styles.profileRow, { paddingHorizontal: 16 }]}>
             <WelcomeProfile />
-          </View>
+          </View> */}
 
-          <View style={{ marginBottom: 16 }}>
+          <View style={{ marginBottom: 16, paddingHorizontal: 16 }}>
             <ReadingPlayer />
           </View>
-          <StreakCard />
+
+          <View style={{ marginBottom: 16, paddingHorizontal: 16 }}>
+            <StreakCard />
+          </View>
+
+          <WorldFeelMeterStats />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -31,7 +36,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flex: 1,
-    padding: 16,
+    paddingVertical: 16,
   },
   profileRow: {
     marginBottom: 16,
