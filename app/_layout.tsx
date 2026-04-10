@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { MD3LightTheme, PaperProvider } from 'react-native-paper';
 import 'react-native-reanimated';
 
+import { runMigrations } from '@/db/migrate';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import store from '@/state/store';
 import { useEffect } from 'react';
@@ -39,6 +40,12 @@ export default function RootLayout() {
       NavigationBar.setStyle('light');
       NavigationBar.setBackgroundColorAsync(theme.colors.elevation.level2);
     }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      await runMigrations();
+    })();
   }, []);
 
   return (
