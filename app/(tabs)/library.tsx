@@ -1,76 +1,25 @@
 import BookItem from '@/components/book-item';
 import ReadingStatsBook from '@/components/stats-reading-book';
-import { BookDetails } from '@/state/library/book-slice';
+import { BookSelectType, getBooks } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Stack, useRouter } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Button, useTheme } from 'react-native-paper';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const BOOKS: BookDetails[] = [
-  {
-    id: '1',
-    title: 'The Midnight Library',
-    author: 'Matt Haig',
-    genre: 'Fiction',
-    coverImageUri: 'https://images.unsplash.com/photo-1544931219-17beab1abd6c',
-    description: 'A woman explores parallel lives in a mysterious library.',
-    totalPages: 304,
-    lastReadPage: 76,
-    status: 'paused',
-  },
-  {
-    id: '2',
-    title: 'Atomic Habits',
-    author: 'James Clear',
-    genre: 'Self-Help',
-    coverImageUri: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f',
-    description: 'Tiny habits compounding into remarkable results.',
-    totalPages: 320,
-    lastReadPage: 120,
-    status: 'finished',
-  },
-  {
-    id: '3',
-    title: 'Educated',
-    author: 'Tara Westover',
-    genre: 'Memoir',
-    coverImageUri: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d',
-    description: 'A memoir about a woman who leaves her survivalist family to learn.',
-    totalPages: 352,
-    lastReadPage: 210,
-    status: 'reading',
-  },
-  {
-    id: '4',
-    title: 'Project Hail Mary with Sebastian Junger the Villages',
-    author: 'Andy Weir',
-    genre: 'Science Fiction',
-    coverImageUri: 'https://images.unsplash.com/photo-1470229538611-16ba8c7ffbd7',
-    description: 'A lone astronaut must save Earth from a dying sun.',
-    totalPages: 476,
-    lastReadPage: 58,
-    status: 'reading',
-  },
-  {
-    id: '5',
-    title: 'Braiding Sweetgrass',
-    author: 'Robin Wall Kimmerer',
-    genre: 'Nature',
-    coverImageUri: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee',
-    description: 'Indigenous wisdom and plant science woven together.',
-    totalPages: 408,
-    lastReadPage: 145,
-    status: 'archived',
-  },
-];
 
 export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useTheme();
+  const dispatch = useDispatch();
+  const { entities: books, loading, error } = useSelector((state: any) => state.book);
+
+  useEffect(() => {
+    dispatch(getBooks({ page: 1, limit: 20 }) as any);
+  }, [dispatch]);
   
   return (
     <React.Fragment>
@@ -113,11 +62,25 @@ export default function LibraryScreen() {
               <ReadingStatsBook />
             </View>
 
-            {BOOKS.map((book) => (
-              <View key={book.id} style={styles.bookCardWrapper}>
-                <BookItem book={book} />
+            {loading ? (
+              <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
               </View>
-            ))}
+            ) : error ? (
+              <View style={styles.centerContainer}>
+                <Text style={{ color: 'red', fontSize: 16 }}>Error loading books: {error}</Text>
+              </View>
+            ) : books.length === 0 ? (
+              <View style={styles.centerContainer}>
+                <Text style={{ fontSize: 16, color: '#999' }}>No books found. Add your first book!</Text>
+              </View>
+            ) : (
+              books.map((book: BookSelectType) => (
+                <View key={book.id} style={styles.bookCardWrapper}>
+                  <BookItem book={book} />
+                </View>
+              ))
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -165,5 +128,11 @@ const styles = StyleSheet.create({
   },
   bookCardWrapper: {
     marginBottom: 12,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
   },
 });

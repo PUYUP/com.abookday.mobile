@@ -1,5 +1,6 @@
+import { Genre } from '@/db/schema/book';
 import { useRouter } from 'expo-router';
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
@@ -12,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSelector } from 'react-redux';
 
 const GENRES = [
   'Fiction',
@@ -29,7 +31,7 @@ const GENRES = [
 export type BookFormData = {
   title: string;
   author: string;
-  genre: string;
+  genres: string;
   totalPages: string;
   isReading: boolean;
 };
@@ -57,14 +59,14 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
     defaultValues: {
       title: '',
       author: '',
-      genre: '',
+      genres: '',
       totalPages: '',
       isReading: false,
       ...defaultValues,
     },
   });
 
-  const selectedGenre = watch('genre');
+  const selectedGenres = useSelector((state: any) => state.book.selectedGenres);
 
   const handleFormSubmit = (data: BookFormData) => {
     console.log('Form submitted with data:', data);
@@ -78,6 +80,10 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
   const submit = handleSubmit(handleFormSubmit);
 
   useImperativeHandle(ref, () => ({ submit }), [submit]);
+
+  useEffect(() => {
+    console.log('selected genres', selectedGenres);
+  }, [selectedGenres]);
 
   return (
     <KeyboardAvoidingView
@@ -188,22 +194,22 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
             <Text style={styles.label}>Genre (Optional)</Text>
             <Controller
               control={control}
-              name="genre"
+              name="genres"
               rules={{ required: false }}
               render={() => (
                 <TouchableOpacity
-                  style={[styles.input, styles.selectInput, errors.genre && styles.inputError]}
+                  style={[styles.input, styles.selectInput, errors.genres && styles.inputError]}
                   onPress={() => router.push('/books/genre-selector')}
                   activeOpacity={0.7}
                 >
-                  <Text style={selectedGenre ? styles.selectText : styles.selectPlaceholder}>
-                    {selectedGenre || 'Select genre'}
+                  <Text style={selectedGenres.length > 0 ? styles.selectText : styles.selectPlaceholder}>
+                    {selectedGenres.length > 0 ? selectedGenres.map((g: Genre) => g.genre).join(', ') : 'Select genre'}
                   </Text>
                   <Text style={styles.chevron}>▼</Text>
                 </TouchableOpacity>
               )}
             />
-            {errors.genre && <Text style={styles.errorText}>{errors.genre.message}</Text>}
+            {errors.genres && <Text style={styles.errorText}>{errors.genres.message}</Text>}
           </View>
         </View>
 

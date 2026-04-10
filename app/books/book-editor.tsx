@@ -4,16 +4,29 @@ import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BookForm, { BookFormData, BookFormHandle } from '@/components/book-form';
+import { BookInsertType, insertBook } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useTheme } from 'react-native-paper';
+import { useDispatch, useSelector } from 'react-redux';
 
 export default function BookEditorScreen() {
     const theme = useTheme();
     const { mode } = useLocalSearchParams<{ mode?: string }>();
     const formRef = useRef<BookFormHandle>(null);
+    const dispatch = useDispatch();
+    const selectedGenres = useSelector((state: any) => state.book.selectedGenres);
 
-    const handleSubmit = (data: BookFormData) => {
-        console.log('Book submitted:', data);
+    const handleSubmit = async (data: BookFormData) => {
+        const payload: BookInsertType = {
+            title: data.title,
+            author: data.author,
+            totalPages: parseInt(data.totalPages),
+            genres: selectedGenres,
+            ownedBy: 'user-123',
+            status: data.isReading ? 'reading' : 'archive',
+        }
+        const result = await dispatch(insertBook(payload) as any);
+        console.log('Book submitted:', result);
     };
 
     return (

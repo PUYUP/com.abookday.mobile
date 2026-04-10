@@ -1,29 +1,29 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { BookDetails } from '@/state/library/book-slice';
+import { Genre } from '@/db/schema/book';
+import { BookSelectType } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import { useTheme } from 'react-native-paper';
 
 type Props = {
-    book: BookDetails;
+    book: BookSelectType;
 };
 
 export default function BookItem({ book }: Props) {
-    const theme = useTheme();   
     const router = useRouter();
     const totalPages = book.totalPages ?? 0;
     const lastReadPage = Math.max(0, Math.min(book.lastReadPage ?? 0, totalPages || Number.MAX_SAFE_INTEGER));
 
     const progress = totalPages > 0 ? Math.min(lastReadPage / totalPages, 1) : 0;
     const progressPct = Math.round(progress * 100);
+    const genres = (book.genres && book.genres !== 'genres' ? JSON.parse(book.genres).map((obj: Genre) => obj.genre) : []).join(',');
 
     return (
         <TouchableOpacity style={styles.container} onPress={() => router.push(`/books/${book.id}`)}>
             <View style={styles.cover}>
-                {book.coverImageUri ? (
-                    <Image source={{ uri: book.coverImageUri }} style={styles.coverImage} />
+                {book.coverUrl ? (
+                    <Image source={{ uri: book.coverUrl }} style={styles.coverImage} />
                 ) : (
                     <View style={styles.coverFallback} />
                 )}
@@ -31,7 +31,7 @@ export default function BookItem({ book }: Props) {
 
             <View style={styles.content}>
                 <View style={styles.bookMeta}>
-                    <Text style={styles.title} numberOfLines={book.author && book.genre ? 1 : 2}>
+                    <Text style={styles.title} numberOfLines={book.author && book.genres ? 1 : 2}>
                         {book.title}
                     </Text>
                     {book.author && (
@@ -39,8 +39,8 @@ export default function BookItem({ book }: Props) {
                             {book.author}
                         </Text>
                     )}
-                    {book.genre && (
-                        <Text style={styles.genre}>{book.genre}</Text>
+                    {book.genres && (
+                        <Text style={styles.genre}>{genres}</Text>
                     )}
                 </View>
 
@@ -52,21 +52,21 @@ export default function BookItem({ book }: Props) {
                         </View>
                     )} */}
 
-                    {book.status === 'finished' && (
+                    {book.status === 'finish' && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="check" size={14} color="#228b22" />
                             <Text style={[styles.readingStatus, { color: '#228b22' }]}>Finished</Text>
                         </View>
                     )}
 
-                    {book.status === 'archived' && (
+                    {book.status === 'archive' && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="archive" size={14} color="#696969" />
                             <Text style={[styles.readingStatus, { color: '#696969' }]}>Archived</Text>
                         </View>
                     )}
 
-                    {book.status === 'paused' && (
+                    {book.status === 'pause' && (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                             <MaterialIcons name="pause" size={14} color="#ff8c00" />
                             <Text style={[styles.readingStatus, { color: '#ff8c00' }]}>Paused</Text>
