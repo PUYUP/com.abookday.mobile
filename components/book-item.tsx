@@ -22,17 +22,16 @@ const parseGenres = (genres: any): string => {
             return '';
         }
     }
-    
+
     // If it's an array, extract genre names
     if (Array.isArray(genreArray)) {
         return genreArray.map((item: any) => item.genre).join(', ');
     }
-    
+
     return '';
 };
 
 export default function BookItem({ book }: Props) {
-    console.log('xx', book.genres)
     const router = useRouter();
     const totalPages = book.totalPages ?? 0;
     const lastReadPage = Math.max(0, Math.min(book.lastReadPage ?? 0, totalPages || Number.MAX_SAFE_INTEGER));
@@ -40,7 +39,7 @@ export default function BookItem({ book }: Props) {
     const progress = totalPages > 0 ? Math.min(lastReadPage / totalPages, 1) : 0;
     const progressPct = Math.round(progress * 100);
     const genres = parseGenres(book.genres);
-    
+
     return (
         <TouchableOpacity style={styles.container} onPress={() => router.push(`/books/${book.id}`)}>
             <View style={styles.cover}>
@@ -61,7 +60,7 @@ export default function BookItem({ book }: Props) {
                             {book.author}
                         </Text>
                     )}
-                    {book.genres && (
+                    {genres && (
                         <Text style={styles.genre}>{genres}</Text>
                     )}
                 </View>
@@ -158,7 +157,7 @@ export const styles = StyleSheet.create({
         marginBottom: 8,
     },
     title: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: '700',
         color: '#0f172a',
         marginBottom: 3,

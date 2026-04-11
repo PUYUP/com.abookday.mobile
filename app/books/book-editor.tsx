@@ -42,7 +42,7 @@ export default function BookEditorScreen() {
             title: data.title,
             author: data.author,
             totalPages: parseInt(data.totalPages),
-            genres: data.genres ? JSON.stringify(data.genres) : JSON.stringify([]),
+            genres: data.genres ? JSON.stringify(data.genres) : null,
             ownedBy: 'user-123',
             status: data.isReading ? 'reading' : 'archive',
         }
@@ -79,6 +79,14 @@ export default function BookEditorScreen() {
             router.push('/(tabs)/library');
         }
     };
+
+    if (loading) {
+        return (
+            <View>
+                <Text>Loading...</Text>
+            </View>
+        )
+    }
 
     return (
         <React.Fragment>

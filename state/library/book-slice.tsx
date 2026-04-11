@@ -60,7 +60,6 @@ export const insertBook = createAsyncThunk(
       const db = await getDB();
       const response = await db.insert(books).values({
         ...payload,
-        genres: JSON.stringify(payload.genres || []),
       }).returning();
 
       return response[0];
@@ -171,9 +170,6 @@ export const updateBook = createAsyncThunk(
         .update(books)
         .set({
           ...data,
-          ...(payload.data.genres !== undefined && {
-            genres: JSON.stringify(payload.data.genres || []),
-          }),
           updatedAt: new Date().toISOString(),
         })
         .where(eq(books.id, id))

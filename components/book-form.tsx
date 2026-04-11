@@ -1,6 +1,6 @@
 import { Genre } from '@/db/schema/book';
 import { useRouter } from 'expo-router';
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 const GENRES = [
   'Fiction',
@@ -48,6 +48,7 @@ export type BookFormHandle = {
 
 function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: BookFormProps, ref: React.Ref<BookFormHandle>) {
   const router = useRouter();
+  const dispatch = useDispatch();
  
   const {
     control,
@@ -66,7 +67,14 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
     },
   });
 
-  console.log(defaultValues)
+  useEffect(() => {
+    if (defaultValues) {
+      dispatch({
+        type: 'book/setGenres',
+        payload: defaultValues.genres,
+      });
+    }
+  }, []);
 
   const selectedGenres = useSelector((state: any) => state.book.selectedGenres);
 

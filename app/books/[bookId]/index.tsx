@@ -1,14 +1,15 @@
 import ReadingPlayerMinimal from '@/components/reading-player-minimal';
 import SessionList from '@/components/session-list';
-import { BookSelectType } from '@/state/library/book-slice';
+import { BookSelectType, getBook } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { addDays, format } from 'date-fns';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDispatch, useSelector } from 'react-redux';
 
 const BOOK: BookSelectType = {
     id: 2,
@@ -154,13 +155,29 @@ const ChartComponent = () => {
 export default function BookDetailScreen() {
     const router = useRouter();
     const theme = useTheme();
+    const dispatch = useDispatch();
     const { bookId } = useLocalSearchParams<{ bookId: string }>();
     
     const progressPct = Math.round(
         ((BOOK.lastReadPage ?? 0) / (BOOK.totalPages ?? 1)) * 100
     );
 
-    console.log(bookId);
+    const { entity: bookDetail, loading, error } = useSelector((state: any) => state.book);
+
+    // Fetch book detail when bookId is available
+    useEffect(() => {
+        if (bookId) {
+            dispatch(getBook(parseInt(bookId)) as any);
+        }
+    }, [bookId]);
+
+    if (loading) {
+        return (
+            <View>
+                <Text>Loading...</Text>
+            </View>
+        )
+    }
 
     return (
         <React.Fragment>
