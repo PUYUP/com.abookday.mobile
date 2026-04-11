@@ -50,7 +50,10 @@ export default function BookEditorScreen() {
         // edit
         if (bookId) {
             try {
-                const result = await dispatch(updateBook({ id: parseInt(bookId), data: payload }) as any);
+                const result = await dispatch(updateBook({ 
+                    id: parseInt(bookId), 
+                    data: payload,
+                }) as any);
                 console.log('Book updated:', result);
                 router.back();
             } 

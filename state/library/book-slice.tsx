@@ -165,7 +165,7 @@ export const updateBook = createAsyncThunk(
   'book/updateBook',
   async (payload: { id: number, data: BookInsertType }, thunkAPI) => {
     try {
-      const { id, ...data } = payload;
+      const { id, data } = payload;
       const db = await getDB();
       const response = await db
         .update(books)
