@@ -1,6 +1,6 @@
 import { Genre } from '@/db/schema/book';
 import { useRouter } from 'expo-router';
-import React, { forwardRef, useEffect, useImperativeHandle } from 'react';
+import React, { forwardRef, useImperativeHandle } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
@@ -31,7 +31,7 @@ const GENRES = [
 export type BookFormData = {
   title: string;
   author: string;
-  genres: string;
+  genres: Genre[];
   totalPages: string;
   isReading: boolean;
 };
@@ -59,18 +59,23 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
     defaultValues: {
       title: '',
       author: '',
-      genres: '',
+      genres: [],
       totalPages: '',
       isReading: false,
       ...defaultValues,
     },
   });
 
+  console.log(defaultValues)
+
   const selectedGenres = useSelector((state: any) => state.book.selectedGenres);
 
   const handleFormSubmit = (data: BookFormData) => {
     console.log('Form submitted with data:', data);
+
     if (onSubmit) {
+      // insert genres
+      data = { ...data, genres: selectedGenres }
       onSubmit(data);
     } else {
       console.log('Book submitted:', data);
@@ -80,10 +85,6 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
   const submit = handleSubmit(handleFormSubmit);
 
   useImperativeHandle(ref, () => ({ submit }), [submit]);
-
-  useEffect(() => {
-    console.log('selected genres', selectedGenres);
-  }, [selectedGenres]);
 
   return (
     <KeyboardAvoidingView

@@ -1,7 +1,7 @@
 import { getDB } from "@/db/connection";
 import { books, Genre } from "@/db/schema/book";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { count, desc } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 
 export type BookInsertType = Omit<typeof books.$inferInsert, 'id'>;
 export type BookSelectType = typeof books.$inferSelect;
@@ -22,8 +22,8 @@ export interface PaginationMeta {
 
 export interface BookState {
   entities: BookSelectType[],
+  entity: BookSelectType | null,
   insert: BookInsertType | null,
-  get: BookSelectType | null,
   pagination: PaginationMeta,
   loading: boolean,
   error: string | null,
@@ -42,8 +42,8 @@ const initialPagination: PaginationMeta = {
 
 const initialState: BookState = {
   entities: [],
+  entity: null,
   insert: null,
-  get: null,
   pagination: initialPagination,
   loading: false,
   error: null,
@@ -71,6 +71,22 @@ export const insertBook = createAsyncThunk(
     }
   },
 )
+
+// delete book
+export const deleteBook = createAsyncThunk(
+  'book/deleteBook',
+  async (id: number, thunkAPI) => {
+    try {
+      const db = await getDB();
+      const response = await db.delete(books).where(eq(books.id, id)).returning();
+      return id;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error instanceof Error ? error.message : 'Failed to delete book'
+      );
+    }
+  },
+);
 
 // get books with pagination
 export const getBooks = createAsyncThunk(
@@ -119,6 +135,31 @@ export const getBooks = createAsyncThunk(
   },
 );
 
+// get single book by id
+export const getBook = createAsyncThunk(
+  'book/getBook',
+  async (id: number, thunkAPI) => {
+    try {
+      const db = await getDB();
+      const book = await db
+        .select()
+        .from(books)
+        .where(eq(books.id, id))
+        .limit(1);
+
+      if (!book || book.length === 0) {
+        return thunkAPI.rejectWithValue('Book not found');
+      }
+
+      return book[0];
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error instanceof Error ? error.message : 'Failed to fetch book'
+      );
+    }
+  },
+);
+
 export const bookSlice = createSlice({
   name: 'book',
   initialState,
@@ -144,7 +185,7 @@ export const bookSlice = createSlice({
           ...action.payload,
           genres: action.payload.genres ? JSON.parse(action.payload.genres as string) : [],
         };
-        state.get = book;
+        state.entity = book;
         state.entities.unshift(book);
       })
       .addCase(insertBook.rejected, (state, action) => {
@@ -163,6 +204,34 @@ export const bookSlice = createSlice({
         state.pagination = action.payload.pagination;
       })
       .addCase(getBooks.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // delete book
+      .addCase(deleteBook.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteBook.fulfilled, (state, action) => {
+        state.loading = false;
+        state.entities = state.entities.filter(book => book.id !== action.payload);
+      })
+      .addCase(deleteBook.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // get single book
+      .addCase(getBook.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getBook.fulfilled, (state, action) => {
+        state.loading = false;
+        state.entity = action.payload;
+      })
+      .addCase(getBook.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

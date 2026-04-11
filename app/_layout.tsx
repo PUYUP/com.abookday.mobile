@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as NavigationBar from 'expo-navigation-bar';
-import { Stack } from 'expo-router';
+import { Stack, useFocusEffect, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { MD3LightTheme, PaperProvider } from 'react-native-paper';
 import 'react-native-reanimated';
@@ -8,7 +8,7 @@ import 'react-native-reanimated';
 import { runMigrations } from '@/db/migrate';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import store from '@/state/store';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Platform } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Provider } from 'react-redux';
@@ -33,6 +33,7 @@ const theme = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -40,13 +41,22 @@ export default function RootLayout() {
       NavigationBar.setStyle('light');
       NavigationBar.setBackgroundColorAsync(theme.colors.elevation.level2);
     }
-  }, []);
 
-  useEffect(() => {
     (async () => {
       await runMigrations();
     })();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // Cleanup when navigating away
+        console.log('Leaving BookEditor screen');
+        console.log(pathname)
+      };
+    }, [])
+  );
+
 
   return (
     <Provider store={store}>

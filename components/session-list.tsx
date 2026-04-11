@@ -1,8 +1,9 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { BookData, SessionData } from '@/state/reading/reading-slice';
+import { SessionData } from '@/state/reading/reading-slice';
 
+import { BookSelectType } from '@/state/library/book-slice';
 import SessionItem from './session-item';
 
 const SAMPLE_SESSIONS: SessionData[] = [
@@ -150,7 +151,7 @@ const SAMPLE_SESSIONS: SessionData[] = [
 
 type Props = {
     sessions?: SessionData[];
-    book?: BookData;
+    book?: BookSelectType;
 };
 
 export default function SessionList({ sessions = SAMPLE_SESSIONS, book }: Props) {

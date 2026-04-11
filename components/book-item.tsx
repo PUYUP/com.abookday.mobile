@@ -1,7 +1,6 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { Genre } from '@/db/schema/book';
 import { BookSelectType } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
@@ -10,15 +9,38 @@ type Props = {
     book: BookSelectType;
 };
 
+const parseGenres = (genres: any): string => {
+    if (!genres) return '';
+    
+    let genreArray = genres;
+    
+    // If it's a string, try to parse it as JSON
+    if (typeof genres === 'string') {
+        try {
+            genreArray = JSON.parse(genres);
+        } catch (e) {
+            return '';
+        }
+    }
+    
+    // If it's an array, extract genre names
+    if (Array.isArray(genreArray)) {
+        return genreArray.map((item: any) => item.genre).join(', ');
+    }
+    
+    return '';
+};
+
 export default function BookItem({ book }: Props) {
+    console.log('xx', book.genres)
     const router = useRouter();
     const totalPages = book.totalPages ?? 0;
     const lastReadPage = Math.max(0, Math.min(book.lastReadPage ?? 0, totalPages || Number.MAX_SAFE_INTEGER));
 
     const progress = totalPages > 0 ? Math.min(lastReadPage / totalPages, 1) : 0;
     const progressPct = Math.round(progress * 100);
-    const genres = (book.genres && book.genres !== 'genres' ? JSON.parse(book.genres).map((obj: Genre) => obj.genre) : []).join(',');
-
+    const genres = parseGenres(book.genres);
+    
     return (
         <TouchableOpacity style={styles.container} onPress={() => router.push(`/books/${book.id}`)}>
             <View style={styles.cover}>

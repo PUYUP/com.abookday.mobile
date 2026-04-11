@@ -1,25 +1,27 @@
 import ReadingPlayerMinimal from '@/components/reading-player-minimal';
 import SessionList from '@/components/session-list';
-import { BookDetails } from '@/state/library/book-slice';
+import { BookSelectType } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { addDays, format } from 'date-fns';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const BOOK: BookDetails = {
-    id: '4',
+const BOOK: BookSelectType = {
+    id: 2,
     title: 'Project Hail Mary with Sebastian Junger the Villages',
     author: 'Andy Weir',
-    genre: 'Science Fiction',
-    coverImageUri: 'https://images.unsplash.com/photo-1470229538611-16ba8c7ffbd7',
-    description: 'A lone astronaut must save Earth from a dying sun.',
+    genres: 'Science Fiction',
+    coverUrl: 'https://images.unsplash.com/photo-1470229538611-16ba8c7ffbd7',
     totalPages: 1476,
     lastReadPage: 158,
     status: 'reading',
+    createdAt: '',
+    ownedBy: 'test-123',
+    isbn: '',
 };
 
 const RAW_DATA = [
@@ -151,9 +153,13 @@ const ChartComponent = () => {
 export default function BookDetailScreen() {
     const router = useRouter();
     const theme = useTheme();
+    const { bookId } = useLocalSearchParams<{ bookId: string }>();
+    
     const progressPct = Math.round(
         ((BOOK.lastReadPage ?? 0) / (BOOK.totalPages ?? 1)) * 100
     );
+
+    console.log(bookId);
 
     return (
         <React.Fragment>
@@ -165,7 +171,7 @@ export default function BookDetailScreen() {
                         <TouchableOpacity
                             onPress={() => router.push({ 
                                 pathname: '/books/book-editor', 
-                                params: { mode: 'edit' } 
+                                params: { mode: 'edit', bookId: bookId } 
                             })}
                             style={[styles.headerButton, { gap: 6 }]}
                         >
@@ -181,8 +187,8 @@ export default function BookDetailScreen() {
                     {/* Book info */}
                     <View style={styles.detailRow}>
                         <View style={styles.cover}>
-                            {BOOK.coverImageUri ? (
-                                <Image source={{ uri: BOOK.coverImageUri }} style={styles.coverImage} />
+                            {BOOK.coverUrl ? (
+                                <Image source={{ uri: BOOK.coverUrl }} style={styles.coverImage} />
                             ) : (
                                 <View style={styles.coverFallback} />
                             )}
@@ -193,10 +199,10 @@ export default function BookDetailScreen() {
                                 <Text style={styles.title}>{BOOK.title}</Text>
                                 <View style={styles.authorRow}>
                                     {BOOK.author && <Text style={styles.author}>{BOOK.author}</Text>}
-                                    {BOOK.genre && (
+                                    {BOOK.genres && (
                                         <>
                                             <MaterialIcons name="circle" size={4} color="#999" style={styles.dot} />
-                                            <Text style={styles.genre}>{BOOK.genre}</Text>
+                                            <Text style={styles.genre}>{BOOK.genres}</Text>
                                         </>
                                     )}
                                 </View>
