@@ -80,5 +80,6 @@ export const books = p.sqliteTable("books", {
   genres:       p.text("genres"),
   status:       p.text("status", { enum: ['reading', 'archive', 'finish', 'pause'] }).default('reading').notNull(),
   createdAt:    p.text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt:    p.text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   ownedBy:      p.text("user_uuid").notNull(), // the UUID coming from supabase auth
 });

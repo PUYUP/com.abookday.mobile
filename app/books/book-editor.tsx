@@ -4,7 +4,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BookForm, { BookFormData, BookFormHandle } from '@/components/book-form';
-import { BookInsertType, deleteBook, getBook, insertBook } from '@/state/library/book-slice';
+import { BookInsertType, deleteBook, getBook, insertBook, updateBook } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Button, useTheme } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
@@ -36,6 +36,7 @@ export default function BookEditorScreen() {
         }
         : undefined;
 
+    // Submit handler
     const handleSubmit = async (data: BookFormData) => {
         const payload: BookInsertType = {
             title: data.title,
@@ -46,12 +47,26 @@ export default function BookEditorScreen() {
             status: data.isReading ? 'reading' : 'archive',
         }
 
-        try {
-            const result = await dispatch(insertBook(payload) as any);
-            console.log('Book submited:', result);
-            router.back();
-        } catch (error) {
-            console.log('Book submit error:', error)
+        // edit
+        if (bookId) {
+            try {
+                const result = await dispatch(updateBook({ id: parseInt(bookId), data: payload }) as any);
+                console.log('Book updated:', result);
+                router.back();
+            } 
+            catch (error) {
+                console.log('Book update error:', error)
+            }
+        } 
+        else {
+            try {
+                const result = await dispatch(insertBook(payload) as any);
+                console.log('Book submited:', result);
+                router.back();
+            } 
+            catch (error) {
+                console.log('Book submit error:', error)
+            }
         }
     };
 

@@ -20,6 +20,7 @@ const BOOK: BookSelectType = {
     lastReadPage: 158,
     status: 'reading',
     createdAt: '',
+    updatedAt: '',
     ownedBy: 'test-123',
     isbn: '',
 };

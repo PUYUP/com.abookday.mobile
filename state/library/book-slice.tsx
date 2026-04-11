@@ -160,6 +160,38 @@ export const getBook = createAsyncThunk(
   },
 );
 
+// update book
+export const updateBook = createAsyncThunk(
+  'book/updateBook',
+  async (payload: { id: number, data: BookInsertType }, thunkAPI) => {
+    try {
+      const { id, ...data } = payload;
+      const db = await getDB();
+      const response = await db
+        .update(books)
+        .set({
+          ...data,
+          ...(payload.data.genres !== undefined && {
+            genres: JSON.stringify(payload.data.genres || []),
+          }),
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(books.id, id))
+        .returning();
+
+      if (!response || response.length === 0) {
+        return thunkAPI.rejectWithValue('Book not found');
+      }
+
+      return response[0];
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error instanceof Error ? error.message : 'Failed to update book'
+      );
+    }
+  },
+);
+
 export const bookSlice = createSlice({
   name: 'book',
   initialState,
@@ -232,6 +264,32 @@ export const bookSlice = createSlice({
         state.entity = action.payload;
       })
       .addCase(getBook.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+    
+      // update book
+      .addCase(updateBook.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateBook.fulfilled, (state, action) => {
+        state.loading = false;
+        const updated = {
+          ...action.payload,
+          genres: action.payload.genres
+            ? JSON.parse(action.payload.genres as string)
+            : [],
+        };
+        // update entity (detail)
+        state.entity = updated;
+        // update inside entities list if exists
+        const index = state.entities.findIndex(b => b.id === updated.id);
+        if (index !== -1) {
+          state.entities[index] = updated;
+        }
+      })
+      .addCase(updateBook.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
