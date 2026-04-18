@@ -160,14 +160,14 @@ export const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         color: '#0f172a',
-        marginBottom: 3,
+        marginBottom: 2,
     },
     author: {
-        fontSize: 13,
+        fontSize: 14,
         color: '#475569',
     },
     genre: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#64748b',
     },
     progressCard: {

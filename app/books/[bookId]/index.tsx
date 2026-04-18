@@ -1,30 +1,16 @@
 import ReadingPlayerMinimal from '@/components/reading-player-minimal';
 import SessionList from '@/components/session-list';
+import { Genre } from '@/db/schema/book';
 import { BookSelectType, getBook } from '@/state/library/book-slice';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { addDays, format } from 'date-fns';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-
-const BOOK: BookSelectType = {
-    id: 2,
-    title: 'Project Hail Mary with Sebastian Junger the Villages',
-    author: 'Andy Weir',
-    genres: 'Science Fiction',
-    coverUrl: 'https://images.unsplash.com/photo-1470229538611-16ba8c7ffbd7',
-    totalPages: 1476,
-    lastReadPage: 158,
-    status: 'reading',
-    createdAt: '',
-    updatedAt: '',
-    ownedBy: 'test-123',
-    isbn: '',
-};
 
 const RAW_DATA = [
     { value: 160, date: '2022-04-01' },
@@ -157,10 +143,9 @@ export default function BookDetailScreen() {
     const theme = useTheme();
     const dispatch = useDispatch();
     const { bookId } = useLocalSearchParams<{ bookId: string }>();
-    
-    const progressPct = Math.round(
-        ((BOOK.lastReadPage ?? 0) / (BOOK.totalPages ?? 1)) * 100
-    );
+    const [book, setBook] = useState<BookSelectType | null>(null);
+    const [genres, setGenres] = useState<Genre[]>([]);
+    const [progressPct, setProgressPct] = useState<number>(0);
 
     const { entity: bookDetail, loading, error } = useSelector((state: any) => state.book);
 
@@ -171,7 +156,15 @@ export default function BookDetailScreen() {
         }
     }, [bookId]);
 
-    if (loading) {
+    useEffect(() => {
+        if (bookDetail) {
+            setBook(bookDetail);
+            setGenres(JSON.parse(bookDetail.genres));
+            setProgressPct(((bookDetail.lastReadPage ?? 0) / (bookDetail.totalPages ?? 1)) * 100);
+        }
+    }, [bookDetail]);
+
+    if (loading || book == null) {
         return (
             <View>
                 <Text>Loading...</Text>
@@ -205,8 +198,8 @@ export default function BookDetailScreen() {
                     {/* Book info */}
                     <View style={styles.detailRow}>
                         <View style={styles.cover}>
-                            {BOOK.coverUrl ? (
-                                <Image source={{ uri: BOOK.coverUrl }} style={styles.coverImage} />
+                            {book.coverUrl ? (
+                                <Image source={{ uri: book.coverUrl }} style={styles.coverImage} />
                             ) : (
                                 <View style={styles.coverFallback} />
                             )}
@@ -214,24 +207,45 @@ export default function BookDetailScreen() {
 
                         <View style={styles.content}>
                             <View>
-                                <Text style={styles.title}>{BOOK.title}</Text>
-                                <View style={styles.authorRow}>
-                                    {BOOK.author && <Text style={styles.author}>{BOOK.author}</Text>}
-                                    {BOOK.genres && (
-                                        <>
-                                            <MaterialIcons name="circle" size={4} color="#999" style={styles.dot} />
-                                            <Text style={styles.genre}>{BOOK.genres}</Text>
-                                        </>
-                                    )}
-                                </View>
+                                <Text style={styles.title}>{book.title}</Text>
+                                {book.author && (
+                                    <View style={styles.authorRow}>
+                                        {book.author && <Text style={styles.author}>{book.author}</Text>}
+                                    </View>
+                                )}
+                                {genres && genres.length > 0 && (
+                                    <View style={styles.authorRow}>
+                                        <Text style={styles.genre}>
+                                            {genres.length > 0 ? genres.map((g: Genre) => g.genre).join(', ') : 'Genre not set'}
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
 
                             <View style={styles.meta}>
-                                <Text style={styles.pages}>{BOOK.totalPages} pages</Text>
-                                {BOOK.status === 'reading' && (
+                                <Text style={styles.pages}>{book.totalPages} pages</Text>
+                                {book.status === 'finish' && (
                                     <View style={styles.readingBadge}>
-                                        <MaterialIcons name="book" size={16} color="#228b22" />
+                                        <MaterialIcons name="check" size={14} color="#228b22" />
+                                        <Text style={[styles.readingNow, { color: '#228b22' }]}>Finished</Text>
+                                    </View>
+                                )}
+                                {book.status === 'reading' && (
+                                    <View style={styles.readingBadge}>
+                                        <MaterialIcons name="chrome-reader-mode" size={16} color="#228b22" />
                                         <Text style={styles.readingNow}>Reading</Text>
+                                    </View>
+                                )}
+                                {book.status === 'archive' && (
+                                    <View style={styles.readingBadge}>
+                                        <MaterialIcons name="archive" size={16} color="#696969" />
+                                        <Text style={[styles.readingNow, { color: '#696969' }]}>Archived</Text>
+                                    </View>
+                                )}
+                                {book.status === 'pause' && (
+                                    <View style={styles.readingBadge}>
+                                        <MaterialIcons name="pause" size={14} color="#ff8c00" />
+                                        <Text style={[styles.readingNow, { color: '#ff8c00' }]}>Paused</Text>
                                     </View>
                                 )}
                             </View>
@@ -260,7 +274,7 @@ export default function BookDetailScreen() {
                             </View>
                             <View>
                                 <Text style={styles.statsLabel}>Read Pages</Text>
-                                <Text style={styles.statsValue}>{BOOK.lastReadPage ?? 0}</Text>
+                                <Text style={styles.statsValue}>{book.lastReadPage ?? 0}</Text>
                             </View>
                             <View>
                                 <Text style={styles.statsLabel}>Progress</Text>
@@ -275,7 +289,7 @@ export default function BookDetailScreen() {
                         <Text style={styles.readingStatsHeaderText}>Reading Sessions</Text>
                     </View>
 
-                    <SessionList book={BOOK} />
+                    <SessionList book={book} />
                 </ScrollView>
             </SafeAreaView>
         </React.Fragment>
@@ -327,7 +341,7 @@ export const styles = StyleSheet.create({
     title: {
         fontSize: 16,
         fontWeight: '600',
-        marginBottom: 8,
+        marginBottom: 2,
     },
     authorRow: {
         flexDirection: 'row',
