@@ -1,6 +1,6 @@
 import { Genre } from '@/db/schema/book';
 import { useRouter } from 'expo-router';
-import React, { forwardRef, useEffect, useImperativeHandle } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
@@ -67,23 +67,15 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
     },
   });
 
-  useEffect(() => {
-    if (defaultValues) {
-      dispatch({
-        type: 'book/setGenres',
-        payload: defaultValues.genres,
-      });
-    }
-  }, []);
-
-  const selectedGenres = useSelector((state: any) => state.book.selectedGenres);
+  const selectedGenres = useSelector((state: any) => state.book.selectedGenres ?? []);
+  const [genres, setGenres] = useState<Genre[]>([]);
 
   const handleFormSubmit = (data: BookFormData) => {
     console.log('Form submitted with data:', data);
 
     if (onSubmit) {
       // insert genres
-      data = { ...data, genres: selectedGenres }
+      data = { ...data, genres: genres }
       onSubmit(data);
     } else {
       console.log('Book submitted:', data);
@@ -93,6 +85,23 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
   const submit = handleSubmit(handleFormSubmit);
 
   useImperativeHandle(ref, () => ({ submit }), [submit]);
+
+  // ✅ Inisialisasi awal dari defaultValues
+  useEffect(() => {
+    if (defaultValues && defaultValues.genres && defaultValues.genres?.length > 0) {
+      dispatch({
+        type: 'book/setGenres',
+        payload: defaultValues?.genres ?? [],
+      });
+    }
+  }, []);
+
+  // ✅ Update saat user memilih genre baru di genre-selector
+  useEffect(() => {
+    if (Array.isArray(selectedGenres) && selectedGenres.length > 0) {
+      setGenres(selectedGenres);
+    }
+  }, [selectedGenres]);
 
   return (
     <KeyboardAvoidingView
@@ -211,8 +220,8 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
                   onPress={() => router.push('/books/genre-selector')}
                   activeOpacity={0.7}
                 >
-                  <Text style={selectedGenres.length > 0 ? styles.selectText : styles.selectPlaceholder}>
-                    {selectedGenres.length > 0 ? selectedGenres.map((g: Genre) => g.genre).join(', ') : 'Select genre'}
+                  <Text style={genres.length > 0 ? styles.selectText : styles.selectPlaceholder}>
+                    {genres.length > 0 ? genres.map((g: Genre) => g.genre).join(', ') : 'Select genre'}
                   </Text>
                   <Text style={styles.chevron}>▼</Text>
                 </TouchableOpacity>
@@ -223,13 +232,13 @@ function BookFormInner({ defaultValues, onSubmit, showSubmitButton = false }: Bo
         </View>
 
         {showSubmitButton && (
-            <TouchableOpacity
-                style={styles.submitButton}
-                onPress={submit}
-                activeOpacity={0.85}
-            >
-                <Text style={styles.submitText}>Save Book</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={submit}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.submitText}>Save Book</Text>
+          </TouchableOpacity>
         )}
       </ScrollView>
     </KeyboardAvoidingView>

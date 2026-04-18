@@ -17,6 +17,7 @@ export default function GenreSelector() {
 
     useEffect(() => {
         // Initialize selectedCodes from Redux state
+        console.log(selectedGenres)
         const codes = new Set<string>(selectedGenres.map((g: Genre) => g.code));
         setSelectedCodes(codes);
     }, []);

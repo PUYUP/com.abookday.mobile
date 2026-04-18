@@ -16,7 +16,9 @@ export default function BookEditorScreen() {
     const dispatch = useDispatch();
     const router = useRouter();
 
-    const { entity: bookDetail, loading, error } = useSelector((state: any) => state.book);
+    const { entity: bookDetail, loading, error } = useSelector((state: any) => {
+        return state.book;
+    });
 
     // Fetch book detail when bookId is available
     useEffect(() => {
@@ -31,7 +33,7 @@ export default function BookEditorScreen() {
             title: bookDetail.title,
             author: bookDetail.author,
             totalPages: String(bookDetail.totalPages),
-            genres: bookDetail.genres,
+            genres: bookDetail.genres ? JSON.parse(bookDetail.genres) : [],
             isReading: bookDetail.status === 'reading',
         }
         : undefined;

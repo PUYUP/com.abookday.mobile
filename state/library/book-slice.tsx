@@ -40,7 +40,7 @@ const initialPagination: PaginationMeta = {
   hasPrevPage: false,
 };
 
-const initialState: BookState = {
+export const initialState: BookState = {
   entities: [],
   entity: null,
   insert: null,
@@ -193,6 +193,7 @@ export const bookSlice = createSlice({
   initialState,
   reducers: {
     setGenres: (state, action: PayloadAction<Genre[]>) => {
+      console.log(action)
       state.selectedGenres = action.payload;
       return state;
     },
@@ -273,9 +274,6 @@ export const bookSlice = createSlice({
         state.loading = false;
         const updated = {
           ...action.payload,
-          genres: action.payload.genres
-            ? JSON.parse(action.payload.genres as string)
-            : [],
         };
         // update entity (detail)
         state.entity = updated;
